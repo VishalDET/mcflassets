@@ -41,6 +41,21 @@ export const getAssets = async () => {
     }
 };
 
+export const getAssetById = async (id) => {
+    try {
+        const docRef = doc(db, ASSETS_COLLECTION, id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            return { id: docSnap.id, ...docSnap.data() };
+        } else {
+            return null;
+        }
+    } catch (error) {
+        console.error("Error getting asset by ID: ", error);
+        throw error;
+    }
+};
+
 export const updateAsset = async (id, assetData) => {
     try {
         const assetRef = doc(db, ASSETS_COLLECTION, id);

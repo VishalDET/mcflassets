@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { addTransfer, getAssets, updateAsset } from "../../services/db";
 import { useAuth } from "../../context/AuthContext";
+import { useDatabase } from "../../context/DatabaseContext";
+import { toast } from "react-toastify";
+import Loader from "../../components/common/Loader";
 
 export default function TransferAsset() {
     const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm();
@@ -10,13 +13,22 @@ export default function TransferAsset() {
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
     const { currentUser } = useAuth();
+    const { companies } = useDatabase();
 
     const selectedAssetId = watch("assetId");
 
     useEffect(() => {
         async function loadAssets() {
-            const data = await getAssets();
-            setAssets(data);
+            setLoading(true);
+            try {
+                const data = await getAssets();
+                setAssets(data);
+            } catch (error) {
+                console.error("Failed to load assets", error);
+                toast.error("Failed to load assets");
+            } finally {
+                setLoading(false);
+            }
         }
         loadAssets();
     }, []);
@@ -25,12 +37,30 @@ export default function TransferAsset() {
         if (selectedAssetId) {
             const asset = assets.find(a => a.id === selectedAssetId);
             if (asset) {
-                setValue("fromCompany", asset.company || "");
-                setValue("fromDepartment", asset.department || "");
+                setValue("fromCompany", asset.companyName || "");
+                setValue("fromBranch", asset.branch || "");
+                setValue("fromLocation", asset.location || "");
                 setValue("currentAssignedTo", asset.assignedTo || "Unassigned");
             }
         }
     }, [selectedAssetId, assets, setValue]);
+
+    const handleCompanyChange = (e) => {
+        const companyId = e.target.value;
+        const selectedCompany = companies.find(c => c.id === companyId);
+
+        if (selectedCompany) {
+            setValue("toCompany", selectedCompany.name);
+            setValue("toBranch", selectedCompany.branch);
+            setValue("toLocation", selectedCompany.location);
+            setValue("toLocationCode", selectedCompany.locationCode || "");
+        } else {
+            setValue("toCompany", "");
+            setValue("toBranch", "");
+            setValue("toLocation", "");
+            setValue("toLocationCode", "");
+        }
+    };
 
     const onSubmit = async (data) => {
         try {
@@ -40,35 +70,56 @@ export default function TransferAsset() {
             await addTransfer({
                 assetId: data.assetId,
                 fromCompany: data.fromCompany,
+                fromBranch: data.fromBranch,
+                fromLocation: data.fromLocation,
                 toCompany: data.toCompany,
-                fromDepartment: data.fromDepartment,
-                toDepartment: data.toDepartment,
+                toBranch: data.toBranch,
+                toLocation: data.toLocation,
                 assignedBy: currentUser.email,
                 assignedTo: data.assignedTo,
+                employeeId: data.employeeId,
+                assignedDate: data.assignedDate,
                 reason: data.reason,
-                transferDate: new Date()
+                transferDate: new Date() // System timestamp of transfer
             });
 
-            // 2. Update Asset Status
+            // 2. Update Asset Status and Location
             await updateAsset(data.assetId, {
-                company: data.toCompany,
-                department: data.toDepartment,
+                companyName: data.toCompany,
+                branch: data.toBranch,
+                location: data.toLocation,
+                locationCode: data.toLocationCode,
                 assignedTo: data.assignedTo,
+                employeeId: data.employeeId,
+                assignedDate: data.assignedDate,
                 status: "Assigned"
             });
 
+            toast.success("Asset transferred successfully");
             navigate("/assets");
         } catch (error) {
             console.error("Error transferring asset:", error);
-            alert("Failed to transfer asset");
+            toast.error("Failed to transfer asset");
         } finally {
             setLoading(false);
         }
     };
 
+    if (loading) return <Loader />;
+
     return (
-        <div className="max-w-2xl mx-auto">
-            <h1 className="text-2xl font-bold mb-6">Transfer Asset</h1>
+        <div className="mx-auto">
+            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Transfer Asset</h2>
+                    <p className="text-gray-500 mt-1">Move assets between companies or locations.</p>
+                </div>
+                <div className="flex gap-2">
+                    <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm font-medium border border-gray-200 flex items-center">
+                        Last updated: {new Date().toLocaleTimeString()}
+                    </span>
+                </div>
+            </div>
 
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -76,19 +127,19 @@ export default function TransferAsset() {
                         <label className="block text-sm font-medium text-gray-700 mb-1">Select Asset</label>
                         <select
                             {...register("assetId", { required: "Please select an asset" })}
-                            className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-gray-500 focus:border-gray-500"
                         >
                             <option value="">Select Asset</option>
                             {assets.map(asset => (
                                 <option key={asset.id} value={asset.id}>
-                                    {asset.name} ({asset.serialNumber})
+                                    {asset.product} ({asset.productSerialNumber}) - {asset.taggingNo}
                                 </option>
                             ))}
                         </select>
                         {errors.assetId && <p className="text-red-500 text-sm mt-1">{errors.assetId.message}</p>}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-4 rounded-lg">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-gray-50 p-4 rounded-lg">
                         <div>
                             <label className="block text-xs font-medium text-gray-500 uppercase">From Company</label>
                             <input
@@ -98,14 +149,22 @@ export default function TransferAsset() {
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-gray-500 uppercase">From Department</label>
+                            <label className="block text-xs font-medium text-gray-500 uppercase">From Branch</label>
                             <input
-                                {...register("fromDepartment")}
+                                {...register("fromBranch")}
                                 readOnly
                                 className="w-full bg-transparent border-none p-0 font-medium text-gray-900 focus:ring-0"
                             />
                         </div>
-                        <div className="md:col-span-2">
+                        <div>
+                            <label className="block text-xs font-medium text-gray-500 uppercase">From Location</label>
+                            <input
+                                {...register("fromLocation")}
+                                readOnly
+                                className="w-full bg-transparent border-none p-0 font-medium text-gray-900 focus:ring-0"
+                            />
+                        </div>
+                        <div className="md:col-span-3">
                             <label className="block text-xs font-medium text-gray-500 uppercase">Currently Assigned To</label>
                             <input
                                 {...register("currentAssignedTo")}
@@ -115,36 +174,75 @@ export default function TransferAsset() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">To Company</label>
-                            <input
-                                {...register("toCompany", { required: "Destination company is required" })}
-                                className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="New Company"
-                            />
-                            {errors.toCompany && <p className="text-red-500 text-sm mt-1">{errors.toCompany.message}</p>}
+                            <select
+                                className="w-full px-3 py-2 border rounded-lg focus:ring-gray-500 focus:border-gray-500"
+                                onChange={handleCompanyChange}
+                                required
+                            >
+                                <option value="">Select New Company</option>
+                                {companies.map(company => (
+                                    <option key={company.id} value={company.id}>
+                                        {company.name} - {company.branch}
+                                    </option>
+                                ))}
+                            </select>
+                            {/* Hidden inputs to store the actual values */}
+                            <input type="hidden" {...register("toCompany", { required: true })} />
+                            <input type="hidden" {...register("toLocationCode")} />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">To Department</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">To Branch</label>
                             <input
-                                {...register("toDepartment", { required: "Destination department is required" })}
-                                className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="New Department"
+                                {...register("toBranch", { required: "Destination branch is required" })}
+                                className="w-full px-3 py-2 border rounded-lg focus:ring-gray-500 focus:border-gray-500 bg-gray-50"
+                                readOnly
                             />
-                            {errors.toDepartment && <p className="text-red-500 text-sm mt-1">{errors.toDepartment.message}</p>}
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">To Location</label>
+                            <input
+                                {...register("toLocation", { required: "Destination location is required" })}
+                                className="w-full px-3 py-2 border rounded-lg focus:ring-gray-500 focus:border-gray-500 bg-gray-50"
+                                readOnly
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Assign To (Person)</label>
+                            <input
+                                {...register("assignedTo", { required: "Assignee name is required" })}
+                                className="w-full px-3 py-2 border rounded-lg focus:ring-gray-500 focus:border-gray-500"
+                                placeholder="Employee Name"
+                            />
+                            {errors.assignedTo && <p className="text-red-500 text-sm mt-1">{errors.assignedTo.message}</p>}
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Employee ID</label>
+                            <input
+                                {...register("employeeId", { required: "Employee ID is required" })}
+                                className="w-full px-3 py-2 border rounded-lg focus:ring-gray-500 focus:border-gray-500"
+                                placeholder="EMP-001"
+                            />
+                            {errors.employeeId && <p className="text-red-500 text-sm mt-1">{errors.employeeId.message}</p>}
                         </div>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Assign To (Person)</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Assigned Date</label>
                         <input
-                            {...register("assignedTo", { required: "Assignee name is required" })}
-                            className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Employee Name"
+                            type="date"
+                            {...register("assignedDate", { required: "Assigned Date is required" })}
+                            defaultValue={new Date().toISOString().split('T')[0]}
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-gray-500 focus:border-gray-500"
                         />
-                        {errors.assignedTo && <p className="text-red-500 text-sm mt-1">{errors.assignedTo.message}</p>}
+                        {errors.assignedDate && <p className="text-red-500 text-sm mt-1">{errors.assignedDate.message}</p>}
                     </div>
 
                     <div>
@@ -152,7 +250,7 @@ export default function TransferAsset() {
                         <textarea
                             {...register("reason", { required: "Reason is required" })}
                             rows="3"
-                            className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-gray-500 focus:border-gray-500"
                             placeholder="e.g. New joining, Replacement, etc."
                         ></textarea>
                         {errors.reason && <p className="text-red-500 text-sm mt-1">{errors.reason.message}</p>}
@@ -162,14 +260,14 @@ export default function TransferAsset() {
                         <button
                             type="button"
                             onClick={() => navigate("/assets")}
-                            className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                            className="px-4 py-2 border rounded-lg hover:bg-gray-50 text-gray-700"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={loading}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                            className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 shadow-sm"
                         >
                             {loading ? "Processing..." : "Transfer Asset"}
                         </button>

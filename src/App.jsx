@@ -6,10 +6,15 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import AssetList from "./pages/Assets/AssetList";
 import AddAsset from "./pages/Assets/AddAsset";
+import EditAsset from "./pages/Assets/EditAsset";
 import AssetDetails from "./pages/Assets/AssetDetails";
 import TransferAsset from "./pages/Transfers/TransferAsset";
 import Reports from "./pages/Reports";
 import Users from "./pages/Users";
+import CompanyMaster from "./pages/CompanyMaster";
+import { DatabaseProvider } from "./context/DatabaseContext";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import { isConfigured } from "./services/firebase";
 
@@ -43,23 +48,28 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
+        <DatabaseProvider>
+          <ToastContainer position="top-right" autoClose={3000} />
+          <Routes>
+            <Route path="/login" element={<Login />} />
 
-          <Route path="/" element={
-            <ProtectedRoute>
-              <MainLayout />
-            </ProtectedRoute>
-          }>
-            <Route index element={<Dashboard />} />
-            <Route path="assets" element={<AssetList />} />
-            <Route path="assets/new" element={<AddAsset />} />
-            <Route path="assets/:id" element={<AssetDetails />} />
-            <Route path="transfers" element={<TransferAsset />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="users" element={<Users />} />
-          </Route>
-        </Routes>
+            <Route path="/" element={
+              <ProtectedRoute>
+                <MainLayout />
+              </ProtectedRoute>
+            }>
+              <Route index element={<Dashboard />} />
+              <Route path="assets" element={<AssetList />} />
+              <Route path="assets/new" element={<AddAsset />} />
+              <Route path="assets/:id/edit" element={<EditAsset />} />
+              <Route path="assets/:id" element={<AssetDetails />} />
+              <Route path="transfers" element={<TransferAsset />} />
+              <Route path="reports" element={<Reports />} />
+              <Route path="users" element={<Users />} />
+              <Route path="companies" element={<CompanyMaster />} />
+            </Route>
+          </Routes>
+        </DatabaseProvider>
       </AuthProvider>
     </Router>
   );
