@@ -6,7 +6,7 @@ export default function Loader() {
             <div className="relative">
                 <div className="animate-spin rounded-full h-20 w-20 border-b-2 border-gray-600"></div>
                 <img
-                    src="../../public/niyantra_600x600.png"
+                    src="/Niyantra_600x600.png"
                     className="absolute inset-0 m-auto h-12 w-12"
                     alt="Loading..."
                 />

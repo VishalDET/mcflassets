@@ -59,14 +59,41 @@ function App() {
               </ProtectedRoute>
             }>
               <Route index element={<Dashboard />} />
+
+              {/* Asset Management - Admin & Staff */}
               <Route path="assets" element={<AssetList />} />
-              <Route path="assets/new" element={<AddAsset />} />
-              <Route path="assets/:id/edit" element={<EditAsset />} />
+              <Route path="assets/new" element={
+                <ProtectedRoute allowedRoles={['Admin', 'Staff']}>
+                  <AddAsset />
+                </ProtectedRoute>
+              } />
+              <Route path="assets/:id/edit" element={
+                <ProtectedRoute allowedRoles={['Admin', 'Staff']}>
+                  <EditAsset />
+                </ProtectedRoute>
+              } />
               <Route path="assets/:id" element={<AssetDetails />} />
-              <Route path="transfers" element={<TransferAsset />} />
+
+              {/* Transfers - Admin & Staff */}
+              <Route path="transfers" element={
+                <ProtectedRoute allowedRoles={['Admin', 'Staff']}>
+                  <TransferAsset />
+                </ProtectedRoute>
+              } />
+
               <Route path="reports" element={<Reports />} />
-              <Route path="users" element={<Users />} />
-              <Route path="companies" element={<CompanyMaster />} />
+
+              {/* Admin Only Routes */}
+              <Route path="users" element={
+                <ProtectedRoute allowedRoles={['Admin']}>
+                  <Users />
+                </ProtectedRoute>
+              } />
+              <Route path="companies" element={
+                <ProtectedRoute allowedRoles={['Admin']}>
+                  <CompanyMaster />
+                </ProtectedRoute>
+              } />
             </Route>
           </Routes>
         </DatabaseProvider>

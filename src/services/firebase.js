@@ -34,5 +34,5 @@ if (isConfigured) {
     console.warn("Firebase configuration missing. App will not function correctly.");
 }
 
-export { auth, db, isConfigured };
+export { auth, db, isConfigured, firebaseConfig };
 export default app;

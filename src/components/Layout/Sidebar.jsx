@@ -1,19 +1,34 @@
-import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Monitor, ArrowRightLeft, FileText, Users, LogOut, Building2, Box } from "lucide-react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import {
+    LayoutDashboard,
+    Box,
+    Users,
+    FileBarChart,
+    LogOut,
+    Building2,
+    ArrowRightLeft,
+    Monitor,
+    FileText
+} from "lucide-react";
 
 export default function Sidebar() {
     const location = useLocation();
-    const { logout } = useAuth();
+    const { logout, currentUser } = useAuth();
+    const navigate = useNavigate();
 
     const navItems = [
-        { path: "/", label: "Dashboard", icon: LayoutDashboard },
-        { path: "/assets", label: "Assets", icon: Monitor },
-        { path: "/transfers", label: "Transfers", icon: ArrowRightLeft },
-        { path: "/reports", label: "Reports", icon: FileText },
-        { path: "/users", label: "Users", icon: Users },
-        { path: "/companies", label: "Company Master", icon: Building2 },
+        { path: "/", label: "Dashboard", icon: LayoutDashboard, roles: ['Admin', 'Staff', 'Viewer'] },
+        { path: "/assets", label: "Assets", icon: Monitor, roles: ['Admin', 'Staff', 'Viewer'] },
+        { path: "/transfers", label: "Transfers", icon: ArrowRightLeft, roles: ['Admin', 'Staff'] },
+        { path: "/reports", label: "Reports", icon: FileText, roles: ['Admin', 'Staff', 'Viewer'] },
+        { path: "/users", label: "Users", icon: Users, roles: ['Admin'] },
+        { path: "/companies", label: "Company Master", icon: Building2, roles: ['Admin'] },
     ];
+
+    const filteredNavItems = navItems.filter(item =>
+        currentUser && item.roles.includes(currentUser.role)
+    );
 
     return (
         <div className="h-screen w-64 bg-gray-900 text-white flex flex-col fixed left-0 top-0 shadow-lg">
@@ -25,7 +40,7 @@ export default function Sidebar() {
                 </div>
             </div>
             <nav className="flex-1 p-4 space-y-2">
-                {navItems.map((item) => {
+                {filteredNavItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = location.pathname === item.path;
                     return (
@@ -42,21 +57,35 @@ export default function Sidebar() {
                         </Link>
                     );
                 })}
-                <button
-                    onClick={logout}
-                    className="flex items-center space-x-3 px-4 py-3 w-full text-left text-gray-400 hover:bg-gray-800 hover:text-white rounded-lg transition-colors"
-                >
-                    <LogOut size={20} />
-                    <span>Logout</span>
-                </button>
+                {/* User profile section */}
+
+
             </nav>
+            <div className="px-0 py-2">
+                <div className="flex items-center gap-3 mb-2 px-2">
+                    <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-white font-bold">
+                        {currentUser?.email?.[0].toUpperCase()}
+                    </div>
+                    <div className="overflow-hidden">
+                        <p className="text-sm font-medium text-gray-300 truncate">{currentUser?.email}</p>
+                        <p className="text-xs text-gray-400 capitalize">{currentUser?.role || 'No Role'}</p>
+                    </div>
+                </div>
+            </div>
+            <button
+                onClick={logout}
+                className="flex items-center space-x-3 px-4 py-3 w-full text-left text-gray-400 hover:bg-gray-800 hover:text-white rounded-lg transition-colors"
+            >
+                <LogOut size={20} />
+                <span>Logout</span>
+            </button>
             <div className="p-2 border-t border-gray-800">
                 <div className="text-center text-gray-400 text-[11px] py-2">
                     Niyantra — Smart Asset Management System
                 </div>
             </div>
             <div className="p-2 border-t border-gray-800 text-center bg-gray-200 border-r-4 border-gray-800 rounded-t-lg">
-                <a href="https://digitaledgetech.in/" className="text-gray-600 font-light py-2 text-[10px]">© 2025 Digital Edge Technologies</a>
+                <a href="https://digitaledgetech.in/" target="_blank" className="text-gray-600 font-light py-2 text-[10px]">© 2025 Digital Edge Technologies</a>
             </div>
         </div>
     );

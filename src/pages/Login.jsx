@@ -32,8 +32,12 @@ export default function Login() {
                 <div className="flex justify-center mb-4">
                     <img src="/niyantra.jpeg" alt="Niyantra Logo" className="h-full w-full object-contain border-t border-r border-l border-gray-300 rounded-t-lg" />
                 </div>
-                {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{error}</div>}
-                <form onSubmit={handleSubmit} className="space-y-4 p-8">
+                {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 mx-8">{error}</div>}
+                <form onSubmit={handleSubmit} className="space-y-4 p-8 pt-0">
+                    <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
+                        Login to Your Account
+                    </h2>
+
                     <div>
                         <label className="block text-gray-700 text-sm font-bold mb-2">Email</label>
                         <div className="relative">
@@ -73,13 +77,9 @@ export default function Login() {
                     >
                         {loading ? "Logging in..." : "Login"}
                     </button>
-                    {/* <div className="text-center mt-4">
-                        <p className="text-gray-600">Don't have an account? <a href="#" className="text-blue-500 hover:underline">Sign Up</a></p>
-                    </div> */}
-
                 </form>
 
-                <div className="p-2 border-t border-gray-300 text-center bg-gray-200 flex items-center justify-between">
+                <div className="p-2 border-t border-gray-300 text-center bg-gray-200 flex items-center justify-between rounded-b-lg">
                     <div className="text-center text-gray-600 font-light text-[10px] py-2">
                         Niyantra — Smart Asset Management System
                     </div>

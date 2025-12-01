@@ -135,3 +135,25 @@ export const addUser = async (userData) => {
         throw error;
     }
 };
+
+export const updateUser = async (id, userData) => {
+    try {
+        const userRef = doc(db, USERS_COLLECTION, id);
+        await updateDoc(userRef, {
+            ...userData,
+            updatedAt: serverTimestamp()
+        });
+    } catch (error) {
+        console.error("Error updating user: ", error);
+        throw error;
+    }
+};
+
+export const deleteUser = async (id) => {
+    try {
+        await deleteDoc(doc(db, USERS_COLLECTION, id));
+    } catch (error) {
+        console.error("Error deleting user: ", error);
+        throw error;
+    }
+};
