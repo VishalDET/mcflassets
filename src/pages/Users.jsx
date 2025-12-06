@@ -69,8 +69,43 @@ export default function Users() {
             fetchUsers();
         } catch (error) {
             console.error("Error saving user:", error);
+            console.log("Error Code:", error.code); // DEBUG LOG
+
             if (error.code === 'auth/email-already-in-use') {
-                toast.error("Email already in use");
+                // Check if user exists in Firestore
+                const existingUsers = users.filter(u => u.email === data.email);
+                console.log("Existing users in Firestore match:", existingUsers); // DEBUG LOG
+
+                if (existingUsers.length === 0) {
+                    console.log("User is orphaned. Triggering confirm."); // DEBUG LOG
+                    // User exists in Auth but not in Firestore (Orphaned)
+                    if (window.confirm(`The user ${data.email} already exists in the system but has no profile. Do you want to create a profile for them?`)) {
+                        try {
+                            const { password, ...userData } = data;
+                            await addUser(userData);
+
+                            // Download Credentials File (even for recovery, useful to have record)
+                            const element = document.createElement("a");
+                            const fileContent = `# User Credentials (Recovered)\n\n**Name:** ${data.name}\n**Email:** ${data.email}\n**Role:** ${data.role}\n\n*Note: Password was not changed. Use existing password or reset it.*`;
+                            const file = new Blob([fileContent], { type: 'text/markdown' });
+                            element.href = URL.createObjectURL(file);
+                            element.download = `credentials_${data.name.replace(/\s+/g, '_')}.md`;
+                            document.body.appendChild(element);
+                            element.click();
+                            document.body.removeChild(element);
+
+                            toast.success("User profile recovered successfully");
+                            reset();
+                            setShowAddForm(false);
+                            fetchUsers();
+                        } catch (innerError) {
+                            console.error("Error recovering user:", innerError);
+                            toast.error("Failed to recover user profile");
+                        }
+                    }
+                } else {
+                    toast.error("Email already in use by an existing user");
+                }
             } else {
                 toast.error("Failed to save user: " + error.message);
             }
