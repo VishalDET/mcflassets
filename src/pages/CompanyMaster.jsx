@@ -4,18 +4,15 @@ import { Plus, Edit, Trash2, X, Building2 } from "lucide-react";
 import Loader from "../components/common/Loader";
 
 export default function CompanyMaster() {
-    const { companies, addCompany, updateCompany, deleteCompany } = useDatabase();
+    const { companies, addCompany, updateCompany, deleteCompany, getBranches } = useDatabase();
     const [localLoading, setLocalLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [formData, setFormData] = useState({
         name: "",
         companyCode: "",
-        branch: "",
-        branchCode: "",
-        location: "",
-        locationCode: ""
     });
+    const [companyCounts, setCompanyCounts] = useState({});
 
     useEffect(() => {
         // Simulate a quick check or wait for data
@@ -23,26 +20,42 @@ export default function CompanyMaster() {
         return () => clearTimeout(timer);
     }, []);
 
+    useEffect(() => {
+        // Fetch branch and asset counts for each company
+        const fetchCounts = async () => {
+            const counts = {};
+            for (const company of companies) {
+                try {
+                    const branches = await getBranches(company.id);
+                    counts[company.id] = {
+                        branches: branches.length,
+                        assets: 0 // Will be updated when we integrate with assets
+                    };
+                } catch (error) {
+                    console.error(`Error fetching data for ${company.name}:`, error);
+                    counts[company.id] = { branches: 0, assets: 0 };
+                }
+            }
+            setCompanyCounts(counts);
+        };
+
+        if (companies.length > 0) {
+            fetchCounts();
+        }
+    }, [companies, getBranches]);
+
     const handleOpenModal = (company = null) => {
         if (company) {
             setEditingId(company.id);
             setFormData({
                 name: company.name,
                 companyCode: company.companyCode || "",
-                branch: company.branch,
-                branchCode: company.branchCode || "",
-                location: company.location,
-                locationCode: company.locationCode || ""
             });
         } else {
             setEditingId(null);
             setFormData({
                 name: "",
                 companyCode: "",
-                branch: "",
-                branchCode: "",
-                location: "",
-                locationCode: ""
             });
         }
         setIsModalOpen(true);
@@ -100,37 +113,53 @@ export default function CompanyMaster() {
                     <thead className="bg-gray-800">
                         <tr>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Company</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Branch</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Location</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Codes (Co/Br/Loc)</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Company Code</th>
+                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-100 uppercase tracking-wider">No. of Branches</th>
+                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-100 uppercase tracking-wider">Total Assets</th>
                             <th className="px-6 py-3 text-right text-xs font-medium text-gray-100 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-800">
+                    <tbody className="bg-white divide-y divide-gray-300">
                         {companies.length === 0 ? (
                             <tr>
-                                <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
+                                <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
                                     No companies found. Add one to get started.
                                 </td>
                             </tr>
                         ) : (
                             companies.map((company) => (
-                                <tr key={company.id} className="hover:bg-gray-50 transition-colors">
+                                <tr
+                                    key={company.id}
+                                    className="hover:bg-gray-50 transition-colors cursor-pointer"
+                                    onClick={() => window.location.href = `/companies/${company.id}`}
+                                >
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{company.name}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{company.branch}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{company.location}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono bg-gray-50 px-2 rounded w-fit">
-                                        {company.companyCode}/{company.branchCode}/{company.locationCode}
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{company.companyCode}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                                        <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold">
+                                            {companyCounts[company.id]?.branches ?? 0}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                                        <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold">
+                                            {companyCounts[company.id]?.assets ?? 0}
+                                        </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <button
-                                            onClick={() => handleOpenModal(company)}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleOpenModal(company);
+                                            }}
                                             className="text-gray-600 hover:text-gray-900 mr-4"
                                         >
                                             <Edit size={18} />
                                         </button>
                                         <button
-                                            onClick={() => handleDelete(company.id)}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDelete(company.id);
+                                            }}
                                             className="text-red-600 hover:text-red-900"
                                         >
                                             <Trash2 size={18} />
@@ -146,7 +175,7 @@ export default function CompanyMaster() {
             {/* Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl ">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
                         <div className="flex justify-between items-center mb-4 bg-gray-900 p-4 py-3 rounded-t-lg">
                             <h2 className="text-lg font-normal text-gray-200">
                                 {editingId ? "Edit Company" : "Add Company"}
@@ -178,50 +207,6 @@ export default function CompanyMaster() {
                                     />
                                 </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Branch</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                                        value={formData.branch}
-                                        onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Branch Code</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-500 font-mono uppercase"
-                                        value={formData.branchCode}
-                                        onChange={(e) => setFormData({ ...formData, branchCode: e.target.value.toUpperCase() })}
-                                    />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                                        value={formData.location}
-                                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Location Code</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-500 font-mono uppercase"
-                                        value={formData.locationCode}
-                                        onChange={(e) => setFormData({ ...formData, locationCode: e.target.value.toUpperCase() })}
-                                    />
-                                </div>
-                            </div>
                             <div className="flex justify-end gap-3 mt-6">
                                 <button
                                     type="button"
@@ -241,6 +226,6 @@ export default function CompanyMaster() {
                     </div>
                 </div>
             )}
-        </div>
+        </div >
     );
 }

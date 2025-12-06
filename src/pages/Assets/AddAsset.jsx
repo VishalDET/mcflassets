@@ -6,11 +6,16 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { toast } from "react-toastify";
 import Loader from "../../components/common/Loader";
+import { getAssets } from "../../services/db";
 
 export default function AddAsset() {
-    const { companies } = useDatabase();
+    const { companies, products, getBranches } = useDatabase();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
+    const [branches, setBranches] = useState([]);
+    const [selectedCompany, setSelectedCompany] = useState(null);
+    const [selectedBranch, setSelectedBranch] = useState(null);
+    const [selectedProduct, setSelectedProduct] = useState(null);
 
     const [formData, setFormData] = useState({
         urn: "",
@@ -18,7 +23,9 @@ export default function AddAsset() {
         yearOfAcquisition: "",
         companyId: "",
         companyName: "",
+        companyCode: "",
         branch: "",
+        branchCode: "",
         location: "",
         locationCode: "",
         product: "",
@@ -31,6 +38,23 @@ export default function AddAsset() {
         status: "Active"
     });
 
+    // Auto-generate URN on mount
+    useEffect(() => {
+        const generateURN = async () => {
+            try {
+                const assets = await getAssets();
+                const urns = assets.map(a => parseInt(a.urn)).filter(n => !isNaN(n));
+                const maxURN = urns.length > 0 ? Math.max(...urns) : 2355;
+                const nextURN = (maxURN + 1).toString();
+                setFormData(prev => ({ ...prev, urn: nextURN }));
+            } catch (error) {
+                console.error("Error generating URN:", error);
+                toast.error("Failed to generate URN");
+            }
+        };
+        generateURN();
+    }, []);
+
     // Auto-calculate Year of Acquisition
     useEffect(() => {
         if (formData.dateOfAcquisition) {
@@ -39,28 +63,100 @@ export default function AddAsset() {
         }
     }, [formData.dateOfAcquisition]);
 
-    // Handle Company Selection
-    const handleCompanyChange = (e) => {
-        const companyId = e.target.value;
-        const selectedCompany = companies.find(c => c.id === companyId);
+    // Auto-generate Tagging Number
+    useEffect(() => {
+        if (formData.companyCode && formData.productCode && formData.urn) {
+            const taggingNo = `${formData.companyCode}${formData.productCode}${formData.urn}`;
+            setFormData(prev => ({ ...prev, taggingNo }));
+        }
+    }, [formData.companyCode, formData.productCode, formData.urn]);
 
-        if (selectedCompany) {
+    // Handle Company Selection
+    const handleCompanyChange = async (e) => {
+        const companyId = e.target.value;
+        const company = companies.find(c => c.id === companyId);
+
+        if (company) {
+            setSelectedCompany(company);
             setFormData(prev => ({
                 ...prev,
-                companyId: selectedCompany.id,
-                companyName: selectedCompany.name,
-                branch: selectedCompany.branch,
-                location: selectedCompany.location,
-                locationCode: selectedCompany.locationCode || ""
+                companyId: company.id,
+                companyName: company.name,
+                companyCode: company.companyCode || "",
+                branch: "",
+                branchCode: "",
+                location: "",
+                locationCode: ""
             }));
+
+            // Fetch branches for selected company
+            try {
+                const fetchedBranches = await getBranches(companyId);
+                setBranches(fetchedBranches);
+            } catch (error) {
+                console.error("Error fetching branches:", error);
+                setBranches([]);
+            }
         } else {
+            setSelectedCompany(null);
+            setBranches([]);
             setFormData(prev => ({
                 ...prev,
                 companyId: "",
                 companyName: "",
+                companyCode: "",
                 branch: "",
+                branchCode: "",
                 location: "",
                 locationCode: ""
+            }));
+        }
+    };
+
+    // Handle Branch Selection
+    const handleBranchChange = (e) => {
+        const branchId = e.target.value;
+        const branch = branches.find(b => b.id === branchId);
+
+        if (branch) {
+            setSelectedBranch(branch);
+            setFormData(prev => ({
+                ...prev,
+                branch: branch.name,
+                branchCode: branch.branchCode || "",
+                location: branch.location || "",
+                locationCode: branch.locationCode || ""
+            }));
+        } else {
+            setSelectedBranch(null);
+            setFormData(prev => ({
+                ...prev,
+                branch: "",
+                branchCode: "",
+                location: "",
+                locationCode: ""
+            }));
+        }
+    };
+
+    // Handle Product Selection
+    const handleProductChange = (e) => {
+        const productId = e.target.value;
+        const product = products.find(p => p.id === productId);
+
+        if (product) {
+            setSelectedProduct(product);
+            setFormData(prev => ({
+                ...prev,
+                product: product.name,
+                productCode: product.code || ""
+            }));
+        } else {
+            setSelectedProduct(null);
+            setFormData(prev => ({
+                ...prev,
+                product: "",
+                productCode: ""
             }));
         }
     };
@@ -89,7 +185,7 @@ export default function AddAsset() {
     if (loading) return <Loader />;
 
     return (
-        <div className="p-6 max-w-4xl mx-auto">
+        <div className="p-4 py-1 max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900">Add New Asset</h2>
@@ -109,13 +205,12 @@ export default function AddAsset() {
                 {/* Section 1: Basic Info */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">URN</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">URN (Auto-generated)</label>
                         <input
                             type="text"
-                            required
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
+                            readOnly
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-500 font-mono"
                             value={formData.urn}
-                            onChange={e => setFormData({ ...formData, urn: e.target.value })}
                         />
                     </div>
                     <div>
@@ -141,10 +236,10 @@ export default function AddAsset() {
 
                 <hr className="border-gray-200" />
 
-                {/* Section 2: Location & Company */}
+                {/* Section 2: Company & Branch */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Company (Select from Master)</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
                         <select
                             required
                             className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-gray-500 focus:outline-none"
@@ -154,19 +249,27 @@ export default function AddAsset() {
                             <option value="">Select Company</option>
                             {companies.map(company => (
                                 <option key={company.id} value={company.id}>
-                                    {company.name} - {company.branch} ({company.location})
+                                    {company.name} ({company.companyCode})
                                 </option>
                             ))}
                         </select>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Branch</label>
-                        <input
-                            type="text"
-                            readOnly
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-500"
-                            value={formData.branch}
-                        />
+                        <select
+                            required
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-gray-500 focus:outline-none"
+                            value={selectedBranch?.id || ""}
+                            onChange={handleBranchChange}
+                            disabled={!selectedCompany}
+                        >
+                            <option value="">Select Branch</option>
+                            {branches.map(branch => (
+                                <option key={branch.id} value={branch.id}>
+                                    {branch.name} ({branch.branchCode}) - {branch.location}
+                                </option>
+                            ))}
+                        </select>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
@@ -193,23 +296,28 @@ export default function AddAsset() {
                 {/* Section 3: Product Details */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
-                        <input
-                            type="text"
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Product</label>
+                        <select
                             required
                             className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-gray-500 focus:outline-none"
-                            value={formData.product}
-                            onChange={e => setFormData({ ...formData, product: e.target.value })}
-                        />
+                            value={selectedProduct?.id || ""}
+                            onChange={handleProductChange}
+                        >
+                            <option value="">Select Product</option>
+                            {products.map(product => (
+                                <option key={product.id} value={product.id}>
+                                    {product.name} ({product.code})
+                                </option>
+                            ))}
+                        </select>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Product Code</label>
                         <input
                             type="text"
-                            required
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-gray-500 focus:outline-none font-mono uppercase"
+                            readOnly
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-500 font-mono uppercase"
                             value={formData.productCode}
-                            onChange={e => setFormData({ ...formData, productCode: e.target.value.toUpperCase() })}
                         />
                     </div>
                     <div>
@@ -234,16 +342,15 @@ export default function AddAsset() {
                     </div>
                 </div>
 
-                {/* Tagging No Input */}
+                {/* Tagging No - Auto-generated */}
                 <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">Tagging No.</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Tagging No. (Auto-generated)</label>
                     <input
                         type="text"
-                        required
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-gray-500 focus:outline-none font-mono"
+                        readOnly
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-500 font-mono text-lg font-bold"
                         value={formData.taggingNo}
-                        onChange={e => setFormData({ ...formData, taggingNo: e.target.value })}
-                        placeholder="Enter Tagging Number"
+                        placeholder="Will be generated automatically"
                     />
                 </div>
 

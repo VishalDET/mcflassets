@@ -12,6 +12,9 @@ import TransferAsset from "./pages/Transfers/TransferAsset";
 import Reports from "./pages/Reports";
 import Users from "./pages/Users";
 import CompanyMaster from "./pages/CompanyMaster";
+import CompanyDetails from "./pages/CompanyDetails";
+import ProductMaster from "./pages/ProductMaster";
+import SupplierMaster from "./pages/SupplierMaster";
 import { DatabaseProvider } from "./context/DatabaseContext";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -92,6 +95,21 @@ function App() {
               <Route path="companies" element={
                 <ProtectedRoute allowedRoles={['Admin']}>
                   <CompanyMaster />
+                </ProtectedRoute>
+              } />
+              <Route path="companies/:id" element={
+                <ProtectedRoute allowedRoles={['Admin']}>
+                  <CompanyDetails />
+                </ProtectedRoute>
+              } />
+              <Route path="products" element={
+                <ProtectedRoute allowedRoles={['Admin']}>
+                  <ProductMaster />
+                </ProtectedRoute>
+              } />
+              <Route path="suppliers" element={
+                <ProtectedRoute allowedRoles={['Admin']}>
+                  <SupplierMaster />
                 </ProtectedRoute>
               } />
             </Route>

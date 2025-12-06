@@ -1,5 +1,6 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useState } from "react";
 import {
     LayoutDashboard,
     Box,
@@ -9,13 +10,19 @@ import {
     Building2,
     ArrowRightLeft,
     Monitor,
-    FileText
+    FileText,
+    Package,
+    Truck,
+    ChevronDown,
+    ChevronRight,
+    FolderOpen
 } from "lucide-react";
 
 export default function Sidebar() {
     const location = useLocation();
     const { logout, currentUser } = useAuth();
     const navigate = useNavigate();
+    const [mastersOpen, setMastersOpen] = useState(true);
 
     const navItems = [
         { path: "/", label: "Dashboard", icon: LayoutDashboard, roles: ['Admin', 'Staff', 'Viewer'] },
@@ -23,12 +30,23 @@ export default function Sidebar() {
         { path: "/transfers", label: "Transfers", icon: ArrowRightLeft, roles: ['Admin', 'Staff'] },
         { path: "/reports", label: "Reports", icon: FileText, roles: ['Admin', 'Staff', 'Viewer'] },
         { path: "/users", label: "Users", icon: Users, roles: ['Admin'] },
+    ];
+
+    const masterItems = [
         { path: "/companies", label: "Company Master", icon: Building2, roles: ['Admin'] },
+        { path: "/products", label: "Product Master", icon: Package, roles: ['Admin'] },
+        { path: "/suppliers", label: "Supplier Master", icon: Truck, roles: ['Admin'] },
     ];
 
     const filteredNavItems = navItems.filter(item =>
         currentUser && item.roles.includes(currentUser.role)
     );
+
+    const filteredMasterItems = masterItems.filter(item =>
+        currentUser && item.roles.includes(currentUser.role)
+    );
+
+    const isMasterActive = masterItems.some(item => location.pathname.startsWith(item.path));
 
     return (
         <div className="h-screen w-64 bg-gray-900 text-white flex flex-col fixed left-0 top-0 shadow-lg">
@@ -39,7 +57,7 @@ export default function Sidebar() {
                     <img src="/niyantra.jpeg" alt="Niyantra Logo" className="w-full h-full object-cover" />
                 </div>
             </div>
-            <nav className="flex-1 p-4 space-y-2">
+            <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
                 {filteredNavItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = location.pathname === item.path;
@@ -57,9 +75,47 @@ export default function Sidebar() {
                         </Link>
                     );
                 })}
-                {/* User profile section */}
 
+                {/* Masters Submenu */}
+                {filteredMasterItems.length > 0 && (
+                    <div>
+                        <button
+                            onClick={() => setMastersOpen(!mastersOpen)}
+                            className={`flex items-center justify-between w-full gap-3 px-4 py-3 rounded-lg transition-colors duration-200 
+                            ${isMasterActive
+                                    ? "bg-gray-800 text-white"
+                                    : "text-gray-400 hover:bg-gray-800 hover:text-white"}`}
+                        >
+                            <div className="flex items-center gap-3">
+                                <FolderOpen size={20} />
+                                <span>Masters</span>
+                            </div>
+                            {mastersOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                        </button>
 
+                        {mastersOpen && (
+                            <div className="ml-4 mt-1 space-y-1">
+                                {filteredMasterItems.map((item) => {
+                                    const Icon = item.icon;
+                                    const isActive = location.pathname.startsWith(item.path);
+                                    return (
+                                        <Link
+                                            key={item.path}
+                                            to={item.path}
+                                            className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors duration-200 text-sm
+                                            ${isActive
+                                                    ? "bg-gray-800 text-white"
+                                                    : "text-gray-400 hover:bg-gray-800 hover:text-white"}`}
+                                        >
+                                            <Icon size={18} />
+                                            <span>{item.label}</span>
+                                        </Link>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                )}
             </nav>
             <div className="px-0 py-2">
                 <div className="flex items-center gap-3 mb-2 px-2">

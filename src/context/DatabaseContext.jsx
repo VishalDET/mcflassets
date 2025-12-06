@@ -9,7 +9,8 @@ import {
     onSnapshot,
     query,
     orderBy,
-    serverTimestamp
+    serverTimestamp,
+    getDocs
 } from "firebase/firestore";
 import { toast } from "react-toastify";
 
@@ -142,6 +143,68 @@ export function DatabaseProvider({ children }) {
         }
     }
 
+    // Branch Operations
+    async function getBranches(companyId) {
+        try {
+            const q = query(
+                collection(db, "companies", companyId, "branches"),
+                orderBy("name")
+            );
+            const querySnapshot = await getDocs(q);
+            return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (error) {
+            console.error("Error fetching branches:", error);
+            toast.error("Failed to fetch branches");
+            return [];
+        }
+    }
+
+    async function addBranch(companyId, branchData) {
+        try {
+            // Add branch to subcollection
+            await addDoc(collection(db, "companies", companyId, "branches"), {
+                ...branchData,
+                createdAt: serverTimestamp()
+            });
+
+            // Update company branch count (optional but good for listing performance)
+            // For now we'll just rely on fetching, but if we wanted a count on the main list we might inc a counter.
+            // Let's keep it simple for now and just add the doc.
+
+            toast.success("Branch added successfully");
+        } catch (error) {
+            console.error("Error adding branch:", error);
+            toast.error("Failed to add branch");
+            throw error;
+        }
+    }
+
+    async function updateBranch(companyId, branchId, branchData) {
+        try {
+            const docRef = doc(db, "companies", companyId, "branches", branchId);
+            await updateDoc(docRef, {
+                ...branchData,
+                updatedAt: serverTimestamp()
+            });
+            toast.success("Branch updated successfully");
+        } catch (error) {
+            console.error("Error updating branch:", error);
+            toast.error("Failed to update branch");
+            throw error;
+        }
+    }
+
+    async function deleteBranch(companyId, branchId) {
+        try {
+            await deleteDoc(doc(db, "companies", companyId, "branches", branchId));
+            toast.success("Branch deleted successfully");
+        } catch (error) {
+            console.error("Error deleting branch:", error);
+            toast.error("Failed to delete branch");
+            throw error;
+        }
+    }
+
     const value = {
         companies,
         products,
@@ -151,7 +214,11 @@ export function DatabaseProvider({ children }) {
         deleteCompany,
         addProduct,
         updateProduct,
-        deleteProduct
+        deleteProduct,
+        getBranches,
+        addBranch,
+        updateBranch,
+        deleteBranch
     };
 
     return (

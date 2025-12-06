@@ -122,7 +122,7 @@ export default function EditAsset() {
     if (fetching) return <Loader />;
 
     return (
-        <div className="p-6 max-w-4xl mx-auto">
+        <div className="p-4 py-1 max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900">Edit Asset</h2>

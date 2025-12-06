@@ -138,7 +138,7 @@ export default function Reports() {
     if (loading) return <Loader />;
 
     return (
-        <div>
+        <div className="max-w-7xl mx-auto overflow-x-hidden">
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900">Advanced Reports</h2>
@@ -174,7 +174,7 @@ export default function Reports() {
                         >
                             <option value="">All Companies</option>
                             {companies.map(c => (
-                                <option key={c.id} value={c.id}>{c.name} - {c.branch}</option>
+                                <option key={c.id} value={c.id}>{c.name} ({c.companyCode})</option>
                             ))}
                         </select>
                     </div>
@@ -235,6 +235,64 @@ export default function Reports() {
                     </div>
                 </div>
             </div>
-        </div>
+
+            {/* Preview Section */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div className="p-4 border-b border-gray-200 bg-gray-50">
+                    <h3 className="text-lg font-semibold text-gray-900">Report Preview</h3>
+                    <p className="text-sm text-gray-600 mt-1">Preview of {filteredAssets.length} assets that will be exported</p>
+                </div>
+
+                {filteredAssets.length === 0 ? (
+                    <div className="p-8 text-center text-gray-500">
+                        <p>No assets found matching the current filters.</p>
+                        <p className="text-sm mt-2">Try adjusting your filters or reset them to see all assets.</p>
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-800">
+                                <tr>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">URN</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Tagging No</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Product</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Serial No</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Company</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Branch</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Status</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Assigned To</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Acquisition Date</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {filteredAssets.map((asset, index) => (
+                                    <tr key={asset.id || index} className="hover:bg-gray-50">
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{asset.urn || '-'}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{asset.taggingNo || '-'}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{asset.product || '-'}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 font-mono">{asset.productSerialNumber || '-'}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{asset.companyName || '-'}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{asset.branch || '-'}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap">
+                                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${asset.status === 'Active' ? 'bg-green-100 text-green-800' :
+                                                asset.status === 'Inactive' ? 'bg-gray-100 text-gray-800' :
+                                                    asset.status === 'In Repair' ? 'bg-yellow-100 text-yellow-800' :
+                                                        asset.status === 'Scrapped' ? 'bg-red-100 text-red-800' :
+                                                            asset.status === 'Assigned' ? 'bg-blue-100 text-blue-800' :
+                                                                'bg-gray-100 text-gray-800'
+                                                }`}>
+                                                {asset.status || 'N/A'}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{asset.assignedTo || 'Unassigned'}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{asset.dateOfAcquisition || '-'}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+        </div >
     );
 }
