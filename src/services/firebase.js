@@ -2,6 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
+
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
     authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -14,21 +15,26 @@ const firebaseConfig = {
 // Check if config is valid (at least apiKey and projectId)
 const isConfigured = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
 
+// ... (imports and config remain same)
+
 let app;
 let auth;
 let db;
+
 
 if (isConfigured) {
     try {
         app = initializeApp(firebaseConfig);
         auth = getAuth(app);
         db = getFirestore(app);
+
     } catch (error) {
         console.error("Firebase initialization error:", error);
         // Fallback to avoid crash on import
         app = null;
         auth = null;
         db = null;
+
     }
 } else {
     console.warn("Firebase configuration missing. App will not function correctly.");

@@ -5,6 +5,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useDatabase } from "../../context/DatabaseContext";
 import { toast } from "react-toastify";
 import Loader from "../../components/common/Loader";
+import { User, Building2 } from "lucide-react";
 
 export default function TransferAsset() {
     const [assets, setAssets] = useState([]);
@@ -15,6 +16,7 @@ export default function TransferAsset() {
     const [selectedAsset, setSelectedAsset] = useState(null);
     const [selectedCompany, setSelectedCompany] = useState(null);
     const [selectedBranch, setSelectedBranch] = useState(null);
+    const [transferType, setTransferType] = useState("employee"); // "employee" or "company"
 
     const navigate = useNavigate();
     const { currentUser } = useAuth();
@@ -188,6 +190,14 @@ export default function TransferAsset() {
             return;
         }
 
+        // Conditional validation for Employee Transfer
+        if (transferType === "employee") {
+            if (!formData.assignedTo || !formData.employeeId) {
+                toast.error("Please enter employee details");
+                return;
+            }
+        }
+
         try {
             setLoading(true);
 
@@ -201,8 +211,8 @@ export default function TransferAsset() {
                 toBranch: formData.toBranch,
                 toLocation: formData.toLocation,
                 assignedBy: currentUser.email,
-                assignedTo: formData.assignedTo,
-                employeeId: formData.employeeId,
+                assignedTo: transferType === "employee" ? formData.assignedTo : "Stock",
+                employeeId: transferType === "employee" ? formData.employeeId : "N/A",
                 assignedDate: formData.assignedDate,
                 reason: formData.reason,
                 transferDate: new Date()
@@ -217,10 +227,10 @@ export default function TransferAsset() {
                 branchCode: formData.toBranchCode,
                 location: formData.toLocation,
                 locationCode: formData.toLocationCode,
-                assignedTo: formData.assignedTo,
-                employeeId: formData.employeeId,
+                assignedTo: transferType === "employee" ? formData.assignedTo : "Stock",
+                employeeId: transferType === "employee" ? formData.employeeId : "N/A",
                 assignedDate: formData.assignedDate,
-                status: "Assigned"
+                status: transferType === "employee" ? "Assigned" : "Active"
             });
 
             toast.success("Asset transferred successfully");
@@ -250,6 +260,35 @@ export default function TransferAsset() {
             </div>
 
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+
+                {/* Transfer Type Toggle */}
+                <div className="mb-8 flex justify-center">
+                    <div className="bg-gray-100 p-1 rounded-lg inline-flex">
+                        <button
+                            type="button"
+                            onClick={() => setTransferType("employee")}
+                            className={`flex items-center gap-2 px-6 py-2 rounded-md text-sm font-medium transition-all ${transferType === "employee"
+                                ? "bg-white text-gray-900 shadow-sm"
+                                : "text-gray-500 hover:text-gray-900"
+                                }`}
+                        >
+                            <User size={18} />
+                            Employee Transfer
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setTransferType("company")}
+                            className={`flex items-center gap-2 px-6 py-2 rounded-md text-sm font-medium transition-all ${transferType === "company"
+                                ? "bg-white text-gray-900 shadow-sm"
+                                : "text-gray-500 hover:text-gray-900"
+                                }`}
+                        >
+                            <Building2 size={18} />
+                            Company Transfer
+                        </button>
+                    </div>
+                </div>
+
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Product and Device Selection */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -372,28 +411,31 @@ export default function TransferAsset() {
                     <hr className="border-gray-200" />
 
                     {/* Assignment Details */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Assign To (Person)</label>
-                            <input
-                                required
-                                className="w-full px-3 py-2 border rounded-lg focus:ring-gray-500 focus:border-gray-500"
-                                placeholder="Employee Name"
-                                value={formData.assignedTo}
-                                onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
-                            />
+                    {/* Assignment Details - Only for Employee Transfer */}
+                    {transferType === "employee" && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Assign To (Person)</label>
+                                <input
+                                    required={transferType === "employee"}
+                                    className="w-full px-3 py-2 border rounded-lg focus:ring-gray-500 focus:border-gray-500"
+                                    placeholder="Employee Name"
+                                    value={formData.assignedTo}
+                                    onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Employee ID</label>
+                                <input
+                                    required={transferType === "employee"}
+                                    className="w-full px-3 py-2 border rounded-lg focus:ring-gray-500 focus:border-gray-500"
+                                    placeholder="EMP-001"
+                                    value={formData.employeeId}
+                                    onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
+                                />
+                            </div>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Employee ID</label>
-                            <input
-                                required
-                                className="w-full px-3 py-2 border rounded-lg focus:ring-gray-500 focus:border-gray-500"
-                                placeholder="EMP-001"
-                                value={formData.employeeId}
-                                onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
-                            />
-                        </div>
-                    </div>
+                    )}
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Assigned Date</label>

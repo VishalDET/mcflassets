@@ -61,6 +61,24 @@ export function DatabaseProvider({ children }) {
         return () => unsubscribe();
     }, []);
 
+    // Fetch Suppliers
+    const [suppliers, setSuppliers] = useState([]);
+    useEffect(() => {
+        const q = query(collection(db, "suppliers"), orderBy("companyName"));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const data = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            setSuppliers(data);
+        }, (error) => {
+            console.error("Error fetching suppliers:", error);
+            toast.error("Failed to fetch suppliers");
+        });
+
+        return () => unsubscribe();
+    }, []);
+
     // Company Operations
     async function addCompany(companyData) {
         try {
@@ -208,6 +226,7 @@ export function DatabaseProvider({ children }) {
     const value = {
         companies,
         products,
+        suppliers,
         loading,
         addCompany,
         updateCompany,

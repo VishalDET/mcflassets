@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { getAssetHistory, getAssetById } from "../../services/db";
-import { ArrowLeft, Calendar, User, Building } from "lucide-react";
+import { ArrowLeft, Calendar, User, Building, FileText, ExternalLink } from "lucide-react";
 import Loader from "../../components/common/Loader";
 
 export default function AssetDetails() {
@@ -134,6 +134,25 @@ export default function AssetDetails() {
                             <div>
                                 <label className="block text-sm font-medium text-gray-500">Warranty Expiry</label>
                                 <div className="mt-1 text-sm text-gray-900 font-medium">{asset.warrantyExpiry || "-"}</div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-500">Invoice</label>
+                                <div className="mt-1">
+                                    {asset.invoiceUrl ? (
+                                        <a
+                                            href={asset.invoiceUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors"
+                                        >
+                                            <FileText size={16} />
+                                            View Invoice
+                                            <ExternalLink size={14} />
+                                        </a>
+                                    ) : (
+                                        <span className="text-sm text-gray-500">-</span>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Assignment */}
