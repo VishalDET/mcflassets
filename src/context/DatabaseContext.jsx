@@ -12,6 +12,7 @@ import {
     serverTimestamp,
     getDocs
 } from "firebase/firestore";
+import { getAssetsByEmployee } from "../services/db";
 import { toast } from "react-toastify";
 
 const DatabaseContext = createContext();
@@ -23,6 +24,7 @@ export function useDatabase() {
 export function DatabaseProvider({ children }) {
     const [companies, setCompanies] = useState([]);
     const [products, setProducts] = useState([]);
+    const [brands, setBrands] = useState([]);
     const [loading, setLoading] = useState(true);
 
     // Fetch Companies
@@ -61,6 +63,23 @@ export function DatabaseProvider({ children }) {
         return () => unsubscribe();
     }, []);
 
+    // Fetch Brands
+    useEffect(() => {
+        const q = query(collection(db, "brands"), orderBy("name"));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const data = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            setBrands(data);
+        }, (error) => {
+            console.error("Error fetching brands:", error);
+            toast.error("Failed to fetch brands");
+        });
+
+        return () => unsubscribe();
+    }, []);
+
     // Fetch Suppliers
     const [suppliers, setSuppliers] = useState([]);
     useEffect(() => {
@@ -74,6 +93,24 @@ export function DatabaseProvider({ children }) {
         }, (error) => {
             console.error("Error fetching suppliers:", error);
             toast.error("Failed to fetch suppliers");
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    // Fetch Employees
+    const [employees, setEmployees] = useState([]);
+    useEffect(() => {
+        const q = query(collection(db, "employees"), orderBy("employeeName"));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const data = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            setEmployees(data);
+        }, (error) => {
+            console.error("Error fetching employees:", error);
+            toast.error("Failed to fetch employees");
         });
 
         return () => unsubscribe();
@@ -161,6 +198,47 @@ export function DatabaseProvider({ children }) {
         }
     }
 
+    // Brand Operations
+    async function addBrand(brandData) {
+        try {
+            await addDoc(collection(db, "brands"), {
+                ...brandData,
+                createdAt: serverTimestamp()
+            });
+            toast.success("Brand added successfully");
+        } catch (error) {
+            console.error("Error adding brand:", error);
+            toast.error("Failed to add brand");
+            throw error;
+        }
+    }
+
+    async function updateBrand(id, currentData) {
+        try {
+            const docRef = doc(db, "brands", id);
+            await updateDoc(docRef, {
+                ...currentData,
+                updatedAt: serverTimestamp()
+            });
+            toast.success("Brand updated successfully");
+        } catch (error) {
+            console.error("Error updating brand:", error);
+            toast.error("Failed to update brand");
+            throw error;
+        }
+    }
+
+    async function deleteBrand(id) {
+        try {
+            await deleteDoc(doc(db, "brands", id));
+            toast.success("Brand deleted successfully");
+        } catch (error) {
+            console.error("Error deleting brand:", error);
+            toast.error("Failed to delete brand");
+            throw error;
+        }
+    }
+
     // Branch Operations
     async function getBranches(companyId) {
         try {
@@ -223,9 +301,63 @@ export function DatabaseProvider({ children }) {
         }
     }
 
+    // Employee Operations
+    async function addEmployee(employeeData) {
+        try {
+            await addDoc(collection(db, "employees"), {
+                ...employeeData,
+                createdAt: serverTimestamp()
+            });
+            toast.success("Employee added successfully");
+        } catch (error) {
+            console.error("Error adding employee:", error);
+            toast.error("Failed to add employee");
+            throw error;
+        }
+    }
+
+    async function updateEmployee(id, employeeData) {
+        try {
+            const docRef = doc(db, "employees", id);
+            await updateDoc(docRef, {
+                ...employeeData,
+                updatedAt: serverTimestamp()
+            });
+            toast.success("Employee updated successfully");
+        } catch (error) {
+            console.error("Error updating employee:", error);
+            toast.error("Failed to update employee");
+            throw error;
+        }
+    }
+
+    async function deleteEmployee(id) {
+        try {
+            await deleteDoc(doc(db, "employees", id));
+            toast.success("Employee deleted successfully");
+        } catch (error) {
+            console.error("Error deleting employee:", error);
+            toast.error("Failed to delete employee");
+            throw error;
+        }
+    }
+
+    // Employee Asset Operations
+    async function getEmployeeAssets(employeeId) {
+        try {
+            const assets = await getAssetsByEmployee(employeeId);
+            return assets;
+        } catch (error) {
+            console.error("Error fetching employee assets:", error);
+            toast.error("Failed to fetch employee assets");
+            return [];
+        }
+    }
+
     const value = {
         companies,
         products,
+        brands,
         suppliers,
         loading,
         addCompany,
@@ -234,10 +366,19 @@ export function DatabaseProvider({ children }) {
         addProduct,
         updateProduct,
         deleteProduct,
+        addBrand,
+        updateBrand,
+        deleteBrand,
         getBranches,
         addBranch,
         updateBranch,
-        deleteBranch
+        deleteBranch,
+        employees,
+        addEmployee,
+        updateEmployee,
+        deleteEmployee,
+        getEmployeeAssets,
+        getAssetsByEmployee
     };
 
     return (

@@ -3,8 +3,10 @@ import { getAssets } from "../services/db";
 import { useDatabase } from "../context/DatabaseContext";
 import * as XLSX from "xlsx";
 import { Download, Filter, RefreshCw } from "lucide-react";
+
 import Loader from "../components/common/Loader";
 import { toast } from "react-toastify";
+import { formatDate } from "../utils/dateUtils";
 
 export default function Reports() {
     const { companies } = useDatabase();
@@ -101,14 +103,14 @@ export default function Reports() {
                 "Location": asset.location || "",
                 "Location Code": asset.locationCode || "",
                 "Status": asset.status || "",
-                "Date of Acquisition": asset.dateOfAcquisition || "",
+                "Date of Acquisition": formatDate(asset.dateOfAcquisition),
                 "Year": asset.yearOfAcquisition || "",
                 "Purchased From": asset.purchasedFrom || "",
-                "Warranty Expiry": asset.warrantyExpiry || "",
+                "Warranty Expiry": formatDate(asset.warrantyExpiry),
                 "Assigned To": asset.assignedTo || "Unassigned",
                 "Employee ID": asset.employeeId || "",
-                "Assigned Date": asset.assignedDate || "",
-                "Created At": asset.createdAt?.seconds ? new Date(asset.createdAt.seconds * 1000).toLocaleDateString() : ""
+                "Assigned Date": formatDate(asset.assignedDate),
+                "Created At": asset.createdAt?.seconds ? formatDate(asset.createdAt.seconds * 1000) : ""
             }));
 
             // Create workbook and worksheet
@@ -285,7 +287,7 @@ export default function Reports() {
                                             </span>
                                         </td>
                                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{asset.assignedTo || 'Unassigned'}</td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{asset.dateOfAcquisition || '-'}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{formatDate(asset.dateOfAcquisition)}</td>
                                     </tr>
                                 ))}
                             </tbody>

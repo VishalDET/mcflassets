@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { addTransfer, getAssets, updateAsset } from "../../services/db";
 import { useAuth } from "../../context/AuthContext";
 import { useDatabase } from "../../context/DatabaseContext";
@@ -20,7 +20,7 @@ export default function TransferAsset() {
 
     const navigate = useNavigate();
     const { currentUser } = useAuth();
-    const { companies, products, getBranches } = useDatabase();
+    const { companies, products, getBranches, employees } = useDatabase();
 
     const [formData, setFormData] = useState({
         productId: "",
@@ -58,6 +58,43 @@ export default function TransferAsset() {
         }
         loadAssets();
     }, []);
+
+    const location = useLocation();
+    const hasPreFilled = useRef(false);
+
+    // Handle Pre-selection from Navigation
+    useEffect(() => {
+        if (location.state?.preselectedAssetId && assets.length > 0 && products.length > 0 && !hasPreFilled.current) {
+            const assetId = location.state.preselectedAssetId;
+            const asset = assets.find(a => a.id === assetId);
+
+            if (asset) {
+                // Find matching product (Asset stores product name)
+                const product = products.find(p => p.name === asset.product);
+
+                if (product) {
+                    hasPreFilled.current = true;
+
+                    // 1. Set Product Selection
+                    setSelectedProduct(product);
+                    const filtered = assets.filter(a => a.product === product.name);
+                    setFilteredAssets(filtered);
+
+                    // 2. Set Asset Selection and Form Data
+                    setSelectedAsset(asset);
+                    setFormData(prev => ({
+                        ...prev,
+                        productId: product.id,
+                        assetId: asset.id,
+                        fromCompany: asset.companyName || "",
+                        fromBranch: asset.branch || "",
+                        fromLocation: asset.location || "",
+                        currentAssignedTo: asset.assignedTo || "Unassigned"
+                    }));
+                }
+            }
+        }
+    }, [assets, products, location.state]);
 
     // Handle Product Selection
     const handleProductChange = (e) => {
@@ -416,26 +453,69 @@ export default function TransferAsset() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Assign To (Person)</label>
-                                <input
-                                    required={transferType === "employee"}
-                                    className="w-full px-3 py-2 border rounded-lg focus:ring-gray-500 focus:border-gray-500"
-                                    placeholder="Employee Name"
-                                    value={formData.assignedTo}
-                                    onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
-                                />
+                                <div className="flex gap-2">
+                                    <select
+                                        required={transferType === "employee"}
+                                        className="w-full px-3 py-2 border rounded-lg focus:ring-gray-500 focus:border-gray-500"
+                                        value={formData.employeeId}
+                                        onChange={(e) => {
+                                            const selectedEmployee = employees.find(emp => emp.employeeId === e.target.value);
+                                            setFormData({
+                                                ...formData,
+                                                employeeId: e.target.value,
+                                                assignedTo: selectedEmployee ? selectedEmployee.employeeName : ""
+                                            });
+                                        }}
+                                        disabled={!formData.toCompanyId}
+                                    >
+                                        <option value="">
+                                            {!formData.toCompanyId
+                                                ? "Select Company First"
+                                                : "Select Employee"}
+                                        </option>
+                                        {employees
+                                            .filter(emp => {
+                                                // Filter by Company
+                                                if (emp.companyId !== formData.toCompanyId) return false;
+
+                                                // Filter by Branch (if selected and employee has branch info)
+                                                // Note: Ideally employees should always have branch if company has branches.
+                                                // Allowing loose match if branch is not selected in form or emp data is incomplete,
+                                                // but per requirement "should be based on to company/branch".
+                                                if (selectedBranch && emp.branchId && emp.branchId !== selectedBranch.id) {
+                                                    return false;
+                                                }
+                                                return true;
+                                            })
+                                            .map(emp => (
+                                                <option key={emp.id} value={emp.employeeId}>
+                                                    {emp.employeeName} ({emp.employeeId})
+                                                </option>
+                                            ))}
+                                    </select>
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate("/employees")}
+                                        className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 border border-gray-300 transition whitespace-nowrap"
+                                        title="Add New Employee"
+                                    >
+                                        + New
+                                    </button>
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Employee ID</label>
                                 <input
-                                    required={transferType === "employee"}
-                                    className="w-full px-3 py-2 border rounded-lg focus:ring-gray-500 focus:border-gray-500"
-                                    placeholder="EMP-001"
-                                    value={formData.employeeId}
-                                    onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
+                                    readOnly
+                                    className="w-full px-3 py-2 border rounded-lg bg-gray-50 text-gray-500"
+                                    placeholder="Employee ID"
+                                    value={formData.employeeId || ""}
+                                    onChange={(e) => {/* Read only handled by selection */ }}
                                 />
                             </div>
                         </div>
                     )}
+
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Assigned Date</label>
@@ -477,7 +557,7 @@ export default function TransferAsset() {
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }

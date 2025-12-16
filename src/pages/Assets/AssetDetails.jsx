@@ -1,14 +1,17 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { getAssetHistory, getAssetById } from "../../services/db";
-import { ArrowLeft, Calendar, User, Building, FileText, ExternalLink } from "lucide-react";
+import { ArrowLeft, Calendar, User, Building, FileText, ExternalLink, MapPin, Pencil } from "lucide-react";
 import Loader from "../../components/common/Loader";
+import { formatDate } from "../../utils/dateUtils";
+import ServiceCenterModal from "../../components/Assets/ServiceCenterModal";
 
 export default function AssetDetails() {
     const { id } = useParams();
     const [asset, setAsset] = useState(null);
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isServiceCenterModalOpen, setIsServiceCenterModalOpen] = useState(false);
 
     useEffect(() => {
         async function loadData() {
@@ -83,6 +86,14 @@ export default function AssetDetails() {
                                         <div className="mt-1 text-sm text-gray-900 font-medium">{asset.productSerialNumber || "-"}</div>
                                     </div>
                                     <div>
+                                        <label className="block text-sm font-medium text-gray-500">Brand</label>
+                                        <div className="mt-1 text-sm text-gray-900 font-medium">{asset.brandName || "-"}</div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-500">Model</label>
+                                        <div className="mt-1 text-sm text-gray-900 font-medium">{asset.model || "-"}</div>
+                                    </div>
+                                    <div>
                                         <label className="block text-sm font-medium text-gray-500">Configuration</label>
                                         <div className="mt-1 text-sm text-gray-900 font-medium">{asset.config || "-"}</div>
                                     </div>
@@ -120,7 +131,7 @@ export default function AssetDetails() {
                                 <label className="block text-sm font-medium text-gray-500">Date of Acquisition</label>
                                 <div className="mt-1 text-sm text-gray-900 font-medium flex items-center gap-2">
                                     <Calendar size={16} className="text-gray-400" />
-                                    {asset.dateOfAcquisition || "-"}
+                                    {formatDate(asset.dateOfAcquisition)}
                                 </div>
                             </div>
                             <div>
@@ -132,8 +143,16 @@ export default function AssetDetails() {
                                 <div className="mt-1 text-sm text-gray-900 font-medium">{asset.purchasedFrom || "-"}</div>
                             </div>
                             <div>
+                                <label className="block text-sm font-medium text-gray-500">Invoice Number</label>
+                                <div className="mt-1 text-sm text-gray-900 font-medium">{asset.invoiceNumber || "-"}</div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-500">Amount</label>
+                                <div className="mt-1 text-sm text-gray-900 font-medium">{asset.amount ? `₹${asset.amount}` : "-"}</div>
+                            </div>
+                            <div>
                                 <label className="block text-sm font-medium text-gray-500">Warranty Expiry</label>
-                                <div className="mt-1 text-sm text-gray-900 font-medium">{asset.warrantyExpiry || "-"}</div>
+                                <div className="mt-1 text-sm text-gray-900 font-medium">{formatDate(asset.warrantyExpiry)}</div>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-500">Invoice</label>
@@ -172,7 +191,7 @@ export default function AssetDetails() {
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-500">Assigned Date</label>
-                                        <div className="mt-1 text-sm text-gray-900 font-medium">{asset.assignedDate || "-"}</div>
+                                        <div className="mt-1 text-sm text-gray-900 font-medium">{formatDate(asset.assignedDate)}</div>
                                     </div>
                                 </div>
                             </div>
@@ -190,7 +209,7 @@ export default function AssetDetails() {
                 {/* History Timeline */}
                 <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 h-fit">
                     <h2 className="text-lg font-bold mb-4">Transfer History</h2>
-                    <div className="space-y-6">
+                    <div className="space-y-6 mb-6">
                         {history.length === 0 ? (
                             <p className="text-gray-500 text-sm">No transfer history</p>
                         ) : (
@@ -211,12 +230,40 @@ export default function AssetDetails() {
                                     <p className="text-xs text-gray-500 mt-1">
                                         Reason: {record.reason}
                                     </p>
+                                    <div className="absolute right-0 top-0">
+                                        <Link
+                                            to={`/transfers/${record.id}/edit`}
+                                            className="text-gray-400 hover:text-blue-600 transition p-1"
+                                            title="Edit Transfer"
+                                        >
+                                            <Pencil size={14} />
+                                        </Link>
+                                    </div>
                                 </div>
                             ))
                         )}
                     </div>
+
+                    {/* Service Center Button */}
+                    <div className="pt-6 border-t border-gray-200">
+                        <button
+                            onClick={() => setIsServiceCenterModalOpen(true)}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition border border-gray-200 font-medium text-sm"
+                        >
+                            <MapPin size={18} />
+                            Find Nearest Service Center
+                        </button>
+                    </div>
                 </div>
             </div>
+
+            {/* Service Center Modal */}
+            <ServiceCenterModal
+                isOpen={isServiceCenterModalOpen}
+                onClose={() => setIsServiceCenterModalOpen(false)}
+                brandName={asset.brandName}
+                location={asset.location}
+            />
         </div>
     );
 }

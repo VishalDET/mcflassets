@@ -1,11 +1,20 @@
 import { Outlet } from "react-router-dom";
+import { useState } from "react";
 import Sidebar from "./Sidebar";
 
 export default function MainLayout() {
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
     return (
         <div className="flex min-h-screen bg-gray-50">
-            <Sidebar />
-            <main className="flex-1 ml-64 p-8">
+            <Sidebar
+                isCollapsed={isSidebarCollapsed}
+                toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            />
+            <main
+                className={`flex-1 p-8 transition-all duration-300 ease-in-out ${isSidebarCollapsed ? "ml-20" : "ml-64"
+                    }`}
+            >
                 <Outlet />
             </main>
         </div>

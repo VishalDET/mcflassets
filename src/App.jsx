@@ -9,12 +9,16 @@ import AddAsset from "./pages/Assets/AddAsset";
 import EditAsset from "./pages/Assets/EditAsset";
 import AssetDetails from "./pages/Assets/AssetDetails";
 import TransferAsset from "./pages/Transfers/TransferAsset";
+import EditTransfer from "./pages/Transfers/EditTransfer";
 import Reports from "./pages/Reports";
 import Users from "./pages/Users";
 import CompanyMaster from "./pages/CompanyMaster";
 import CompanyDetails from "./pages/CompanyDetails";
 import ProductMaster from "./pages/ProductMaster";
 import SupplierMaster from "./pages/SupplierMaster";
+import BrandMaster from "./pages/BrandMaster";
+import EmployeeMaster from "./pages/EmployeeMaster";
+import UserProfile from "./pages/UserProfile";
 import { DatabaseProvider } from "./context/DatabaseContext";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -84,6 +88,12 @@ function App() {
                 </ProtectedRoute>
               } />
 
+              <Route path="transfers/:id/edit" element={
+                <ProtectedRoute allowedRoles={['Admin', 'Staff']}>
+                  <EditTransfer />
+                </ProtectedRoute>
+              } />
+
               <Route path="reports" element={<Reports />} />
 
               {/* Admin Only Routes */}
@@ -112,6 +122,17 @@ function App() {
                   <SupplierMaster />
                 </ProtectedRoute>
               } />
+              <Route path="brands" element={
+                <ProtectedRoute allowedRoles={['Admin']}>
+                  <BrandMaster />
+                </ProtectedRoute>
+              } />
+              <Route path="employees" element={
+                <ProtectedRoute allowedRoles={['Admin']}>
+                  <EmployeeMaster />
+                </ProtectedRoute>
+              } />
+              <Route path="profile" element={<UserProfile />} />
             </Route>
           </Routes>
         </DatabaseProvider>

@@ -10,7 +10,7 @@ import Loader from "../../components/common/Loader";
 import { getAssets } from "../../services/db";
 
 export default function AddAsset() {
-    const { companies, products, suppliers, getBranches } = useDatabase();
+    const { companies, products, suppliers, brands, getBranches } = useDatabase();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [branches, setBranches] = useState([]);
@@ -34,9 +34,14 @@ export default function AddAsset() {
         product: "",
         productCode: "",
         productSerialNumber: "",
+        brandId: "",
+        brandName: "",
+        model: "",
         config: "",
         taggingNo: "",
         purchasedFrom: "",
+        invoiceNumber: "",
+        amount: "",
         warrantyExpiry: "",
         status: "Active"
     });
@@ -58,11 +63,22 @@ export default function AddAsset() {
     //     generateURN();
     // }, []);
 
-    // Auto-calculate Year of Acquisition
+    // Auto-calculate Year of Acquisition and Warranty Expiry
     useEffect(() => {
         if (formData.dateOfAcquisition) {
-            const year = new Date(formData.dateOfAcquisition).getFullYear();
-            setFormData(prev => ({ ...prev, yearOfAcquisition: year }));
+            const date = new Date(formData.dateOfAcquisition);
+            const year = date.getFullYear();
+
+            // Calculate 1 year warranty
+            const warrantyDate = new Date(date);
+            warrantyDate.setFullYear(warrantyDate.getFullYear() + 1);
+            const warrantyString = warrantyDate.toISOString().split('T')[0];
+
+            setFormData(prev => ({
+                ...prev,
+                yearOfAcquisition: year,
+                warrantyExpiry: warrantyString
+            }));
         }
     }, [formData.dateOfAcquisition]);
 
@@ -325,6 +341,43 @@ export default function AddAsset() {
 
                 <hr className="border-gray-200" />
 
+
+
+                {/* Section 3.5: Brand & Model */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Brand</label>
+                        <select
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-gray-500 focus:outline-none"
+                            value={formData.brandId}
+                            onChange={(e) => {
+                                const selectedBrand = brands.find(b => b.id === e.target.value);
+                                setFormData(prev => ({
+                                    ...prev,
+                                    brandId: e.target.value,
+                                    brandName: selectedBrand ? selectedBrand.name : ""
+                                }));
+                            }}
+                        >
+                            <option value="">Select Brand</option>
+                            {brands.map(brand => (
+                                <option key={brand.id} value={brand.id}>
+                                    {brand.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
+                        <input
+                            type="text"
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-gray-500 focus:outline-none"
+                            value={formData.model}
+                            onChange={(e) => setFormData(prev => ({ ...prev, model: e.target.value }))}
+                        />
+                    </div>
+                </div>
+
                 {/* Section 3: Product Details */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -408,6 +461,24 @@ export default function AddAsset() {
                                 </option>
                             ))}
                         </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Invoice Number</label>
+                        <input
+                            type="text"
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-gray-500 focus:outline-none"
+                            value={formData.invoiceNumber}
+                            onChange={e => setFormData({ ...formData, invoiceNumber: e.target.value })}
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                        <input
+                            type="number"
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-gray-500 focus:outline-none"
+                            value={formData.amount}
+                            onChange={e => setFormData({ ...formData, amount: e.target.value })}
+                        />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Warranty Expiry</label>
@@ -496,7 +567,7 @@ export default function AddAsset() {
                         {loading ? (uploading ? "Uploading Invoice..." : "Saving...") : "Save Asset"}
                     </button>
                 </div>
-            </form>
-        </div>
+            </form >
+        </div >
     );
 }

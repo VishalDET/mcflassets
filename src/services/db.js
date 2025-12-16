@@ -109,6 +109,61 @@ export const getAssetHistory = async (assetId) => {
     }
 };
 
+export const getTransferById = async (id) => {
+    try {
+        const docRef = doc(db, TRANSFERS_COLLECTION, id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            return { id: docSnap.id, ...docSnap.data() };
+        } else {
+            return null;
+        }
+    } catch (error) {
+        console.error("Error getting transfer by ID: ", error);
+        throw error;
+    }
+};
+
+export const updateTransfer = async (id, transferData) => {
+    try {
+        const transferRef = doc(db, TRANSFERS_COLLECTION, id);
+        await updateDoc(transferRef, {
+            ...transferData,
+            updatedAt: serverTimestamp()
+        });
+    } catch (error) {
+        console.error("Error updating transfer: ", error);
+        throw error;
+    }
+};
+
+export const getAssetsByEmployee = async (employeeId) => {
+    try {
+        const q = query(
+            collection(db, ASSETS_COLLECTION),
+            where("assignedTo", "==", employeeId), // Assuming 'assignedTo' stores the Employee ID or Name. Using 'employeeId' field is safer if available.
+            // Let's check AssetDetails.jsx, it uses asset.employeeId.
+            // But wait, the previous edits show 'assignedTo' is used for display. 
+            // Better to check for both or just verify schema. 
+            // AssetDetails uses: asset.employeeId (Employee ID) and asset.assignedTo (Name?).
+            // Let's use 'employeeId' field as it's more reliable for linking.
+            // Re-reading AssetDetails: 
+            // <div className="mt-1 text-sm text-gray-900 font-medium">{asset.employeeId || "-"}</div>
+            // So we should query by 'employeeId'.
+        );
+        // Actually, to be safe and robust, let's query where 'employeeId' == employeeId.
+        const q2 = query(
+            collection(db, ASSETS_COLLECTION),
+            where("employeeId", "==", employeeId)
+        );
+        const querySnapshot = await getDocs(q2);
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+        console.error("Error getting assets by employee: ", error);
+        throw error;
+    }
+};
+
 // Users Collection
 const USERS_COLLECTION = "users";
 
