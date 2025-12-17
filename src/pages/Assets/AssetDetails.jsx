@@ -1,17 +1,22 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { getAssetHistory, getAssetById } from "../../services/db";
-import { ArrowLeft, Calendar, User, Building, FileText, ExternalLink, MapPin, Pencil } from "lucide-react";
+import { getAssetHistory, getAssetById, addTransfer, updateAsset } from "../../services/db";
+import { ArrowLeft, Calendar, User, Building, FileText, ExternalLink, MapPin, Pencil, UserMinus } from "lucide-react";
 import Loader from "../../components/common/Loader";
 import { formatDate } from "../../utils/dateUtils";
 import ServiceCenterModal from "../../components/Assets/ServiceCenterModal";
+import { toast } from "react-toastify";
+import { useAuth } from "../../context/AuthContext";
 
 export default function AssetDetails() {
     const { id } = useParams();
+    const { currentUser } = useAuth();
     const [asset, setAsset] = useState(null);
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [unassigning, setUnassigning] = useState(false);
     const [isServiceCenterModalOpen, setIsServiceCenterModalOpen] = useState(false);
+    const [isUnassignModalOpen, setIsUnassignModalOpen] = useState(false);
 
     useEffect(() => {
         async function loadData() {
@@ -31,6 +36,59 @@ export default function AssetDetails() {
         }
         loadData();
     }, [id]);
+
+    const handleUnassign = () => {
+        if (!asset || asset.status !== "Assigned") {
+            toast.error("Asset is not currently assigned");
+            return;
+        }
+        setIsUnassignModalOpen(true);
+    };
+
+    const confirmUnassign = async () => {
+        try {
+            setUnassigning(true);
+            setIsUnassignModalOpen(false);
+
+            // Create transfer record for audit trail
+            await addTransfer({
+                assetId: id,
+                fromCompany: asset.companyName,
+                fromBranch: asset.branch,
+                fromLocation: asset.location,
+                toCompany: asset.companyName, // Same company
+                toBranch: asset.branch, // Same branch
+                toLocation: asset.location, // Same location
+                assignedBy: currentUser.email,
+                assignedTo: "Stock",
+                employeeId: "N/A",
+                assignedDate: new Date().toISOString().split('T')[0],
+                reason: `Unassigned from ${asset.assignedTo} (${asset.employeeId})`,
+                transferDate: new Date()
+            });
+
+            // Update asset to Active status and clear assignment
+            await updateAsset(id, {
+                status: "Active",
+                assignedTo: "Stock",
+                employeeId: "N/A",
+                assignedDate: null
+            });
+
+            toast.success("Asset unassigned successfully");
+
+            // Reload data
+            const updatedAsset = await getAssetById(id);
+            setAsset(updatedAsset);
+            const historyData = await getAssetHistory(id);
+            setHistory(historyData);
+        } catch (error) {
+            console.error("Error unassigning asset:", error);
+            toast.error("Failed to unassign asset");
+        } finally {
+            setUnassigning(false);
+        }
+    };
 
     if (loading) return <Loader />;
     if (!asset) return <div className="p-8 text-center">Asset not found</div>;
@@ -176,7 +234,20 @@ export default function AssetDetails() {
 
                             {/* Assignment */}
                             <div className="col-span-2 pt-4 border-t border-gray-100 mt-2">
-                                <h3 className="text-sm font-semibold text-gray-900 mb-4 uppercase tracking-wider">Current Assignment</h3>
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">Current Assignment</h3>
+                                    {asset.status === "Assigned" && (
+                                        <button
+                                            onClick={handleUnassign}
+                                            disabled={unassigning}
+                                            className="flex items-center gap-2 px-3 py-1.5 bg-orange-50 text-orange-700 rounded-lg hover:bg-orange-100 transition border border-orange-200 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                            title="Return asset to stock"
+                                        >
+                                            <UserMinus size={16} />
+                                            {unassigning ? "Unassigning..." : "Unassign Asset"}
+                                        </button>
+                                    )}
+                                </div>
                                 <div className="grid grid-cols-3 gap-6">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-500">Assigned To</label>
@@ -319,6 +390,71 @@ export default function AssetDetails() {
                 brandName={asset.brandName}
                 location={asset.location}
             />
+
+            {/* Unassign Confirmation Modal */}
+            {isUnassignModalOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+                        <div className="flex justify-between items-center mb-4 bg-orange-600 p-4 py-3 rounded-t-lg">
+                            <h2 className="text-lg font-semibold text-white">
+                                Unassign Asset
+                            </h2>
+                            <button
+                                onClick={() => setIsUnassignModalOpen(false)}
+                                className="text-white hover:text-gray-200"
+                            >
+                                <ArrowLeft size={24} />
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <p className="text-gray-700 mb-4">
+                                Are you sure you want to unassign this asset?
+                            </p>
+
+                            <div className="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200">
+                                <div className="space-y-2">
+                                    <div>
+                                        <span className="text-sm font-medium text-gray-500">Asset:</span>
+                                        <p className="text-sm text-gray-900 font-semibold">
+                                            {asset.product} ({asset.taggingNo})
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <span className="text-sm font-medium text-gray-500">Currently assigned to:</span>
+                                        <p className="text-sm text-gray-900 font-semibold">
+                                            {asset.assignedTo} ({asset.employeeId})
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-6">
+                                <p className="text-sm text-orange-800">
+                                    <strong>Note:</strong> This will return the asset to stock (Active status).
+                                </p>
+                            </div>
+
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsUnassignModalOpen(false)}
+                                    className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition border border-gray-300"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={confirmUnassign}
+                                    disabled={unassigning}
+                                    className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {unassigning ? "Unassigning..." : "Confirm Unassign"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div >
     );
 }
