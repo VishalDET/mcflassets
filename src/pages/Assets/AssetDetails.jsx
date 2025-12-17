@@ -16,7 +16,7 @@ export default function AssetDetails() {
     useEffect(() => {
         async function loadData() {
             try {
-                const foundAsset = await getAssetById(id); // Changed to use getAssetById
+                const foundAsset = await getAssetById(id);
                 setAsset(foundAsset);
 
                 if (foundAsset) {
@@ -208,39 +208,94 @@ export default function AssetDetails() {
 
                 {/* History Timeline */}
                 <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 h-fit">
-                    <h2 className="text-lg font-bold mb-4">Transfer History</h2>
+                    <h2 className="text-lg font-bold mb-4">Assignment & Transfer History</h2>
                     <div className="space-y-6 mb-6">
                         {history.length === 0 ? (
-                            <p className="text-gray-500 text-sm">No transfer history</p>
+                            <p className="text-gray-500 text-sm">No assignment or transfer history</p>
                         ) : (
-                            history.map((record) => (
-                                <div key={record.id} className="relative pl-6 border-l-2 border-gray-200 last:border-0 pb-6 last:pb-0">
-                                    <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-gray-500 border-2 border-white"></div>
-                                    <div className="mb-1">
-                                        <span className="text-xs font-medium text-gray-500">
-                                            {record.transferDate?.seconds ? new Date(record.transferDate.seconds * 1000).toLocaleDateString() : 'Just now'}
-                                        </span>
+                            history.map((record) => {
+                                const isEmployeeAssignment = record.assignedTo && record.assignedTo !== "Stock" && record.assignedTo !== "N/A";
+                                const dotColor = isEmployeeAssignment ? "bg-blue-500" : "bg-gray-500";
+                                const badgeColor = isEmployeeAssignment
+                                    ? "bg-blue-100 text-blue-800"
+                                    : "bg-gray-100 text-gray-800";
+                                const badgeText = isEmployeeAssignment ? "Employee Assignment" : "Company Transfer";
+
+                                return (
+                                    <div key={record.id} className="relative pl-6 border-l-2 border-gray-200 last:border-0 pb-6 last:pb-0">
+                                        <div className={`absolute -left-[9px] top-0 w-4 h-4 rounded-full ${dotColor} border-2 border-white`}></div>
+
+                                        {/* Date and Badge */}
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="text-xs font-medium text-gray-500">
+                                                {record.transferDate?.seconds
+                                                    ? new Date(record.transferDate.seconds * 1000).toLocaleDateString('en-IN', {
+                                                        day: '2-digit',
+                                                        month: 'short',
+                                                        year: 'numeric'
+                                                    })
+                                                    : 'Just now'}
+                                            </span>
+                                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${badgeColor}`}>
+                                                {badgeText}
+                                            </span>
+                                        </div>
+
+                                        {/* Assignment Details */}
+                                        {isEmployeeAssignment ? (
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                                                    <User size={14} className="text-blue-500" />
+                                                    {record.assignedTo}
+                                                    {record.employeeId && record.employeeId !== "N/A" && (
+                                                        <span className="text-xs font-normal text-gray-500">
+                                                            (ID: {record.employeeId})
+                                                        </span>
+                                                    )}
+                                                </p>
+                                                <p className="text-xs text-gray-600 flex items-center gap-1">
+                                                    <Building size={12} className="text-gray-400" />
+                                                    {record.toCompany} • {record.toBranch}
+                                                </p>
+                                                <p className="text-xs text-gray-500">
+                                                    Location: {record.toLocation}
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-semibold text-gray-900">
+                                                    Transferred to Stock
+                                                </p>
+                                                <p className="text-xs text-gray-600 flex items-center gap-1">
+                                                    <Building size={12} className="text-gray-400" />
+                                                    {record.toCompany} • {record.toBranch}
+                                                </p>
+                                                <p className="text-xs text-gray-500">
+                                                    Location: {record.toLocation}
+                                                </p>
+                                            </div>
+                                        )}
+
+                                        {/* Reason */}
+                                        {record.reason && (
+                                            <p className="text-xs text-gray-500 mt-2 italic">
+                                                Reason: {record.reason}
+                                            </p>
+                                        )}
+
+                                        {/* Edit Button */}
+                                        <div className="absolute right-0 top-0">
+                                            <Link
+                                                to={`/transfers/${record.id}/edit`}
+                                                className="text-gray-400 hover:text-blue-600 transition p-1"
+                                                title="Edit Transfer"
+                                            >
+                                                <Pencil size={14} />
+                                            </Link>
+                                        </div>
                                     </div>
-                                    <p className="text-sm font-medium">
-                                        Transferred to {record.toCompany} ({record.toDepartment})
-                                    </p>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        Assigned to: {record.assignedTo}
-                                    </p>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        Reason: {record.reason}
-                                    </p>
-                                    <div className="absolute right-0 top-0">
-                                        <Link
-                                            to={`/transfers/${record.id}/edit`}
-                                            className="text-gray-400 hover:text-blue-600 transition p-1"
-                                            title="Edit Transfer"
-                                        >
-                                            <Pencil size={14} />
-                                        </Link>
-                                    </div>
-                                </div>
-                            ))
+                                );
+                            })
                         )}
                     </div>
 
@@ -264,6 +319,6 @@ export default function AssetDetails() {
                 brandName={asset.brandName}
                 location={asset.location}
             />
-        </div>
+        </div >
     );
 }

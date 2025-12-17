@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getTransferById, updateTransfer, getAssetById, updateAsset } from "../../services/db";
+import { getTransferById, updateTransfer, addTransfer, getAssetById, updateAsset } from "../../services/db";
 import { useAuth } from "../../context/AuthContext";
 import { useDatabase } from "../../context/DatabaseContext";
 import { toast } from "react-toastify";
@@ -186,36 +186,48 @@ export default function EditTransfer() {
         try {
             setSubmitting(true);
 
-            const updateData = {
+            // Step 1: Mark the old transfer record as superseded
+            await updateTransfer(id, {
+                isSuperseded: true,
+                supersededAt: new Date(),
+                supersededBy: currentUser.email
+            });
+
+            // Step 2: Create a new transfer record with updated information
+            const newTransferData = {
+                assetId: transfer.assetId,
+                fromCompany: transfer.fromCompany,
+                fromBranch: transfer.fromBranch,
+                fromLocation: transfer.fromLocation,
                 toCompany: formData.toCompany,
                 toBranch: formData.toBranch,
                 toLocation: formData.toLocation,
+                assignedBy: currentUser.email,
                 assignedTo: transferType === "employee" ? formData.assignedTo : "Stock",
                 employeeId: transferType === "employee" ? formData.employeeId : "N/A",
                 assignedDate: formData.assignedDate,
                 reason: formData.reason,
-                updatedBy: currentUser.email
+                supersedes: id, // Link to the old transfer record
+                transferDate: new Date()
             };
 
-            await updateTransfer(id, updateData);
+            await addTransfer(newTransferData);
 
-            // Check if we should update the asset
-            // Logic: If the asset's current state matches our OLD transfer state, we might want to update it.
-            // Or simpler: Ask user? For now, let's auto-update if it looks like the latest one.
-            // A simple heuristic: If the asset's current 'assignedTo' matches the OLD transfer's 'assignedTo', update it.
+            // Step 3: Update the asset with new assignment details
+            // Only update if this appears to be the latest transfer for the asset
             if (asset && (asset.assignedTo === transfer.assignedTo || asset.lastTransferId === id)) {
                 await updateAsset(asset.id, {
                     companyName: formData.toCompany,
                     branch: formData.toBranch,
                     location: formData.toLocation,
-                    assignedTo: updateData.assignedTo,
-                    employeeId: updateData.employeeId,
+                    assignedTo: newTransferData.assignedTo,
+                    employeeId: newTransferData.employeeId,
                     assignedDate: formData.assignedDate,
                     status: transferType === "employee" ? "Assigned" : "Active"
                 });
-                toast.success("Transfer and Asset updated successfully");
+                toast.success("Transfer updated successfully - new history record created");
             } else {
-                toast.success("Transfer record updated");
+                toast.success("Transfer record updated - new history record created");
             }
 
             navigate(-1); // Go back
