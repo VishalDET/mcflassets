@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useDatabase } from "../context/DatabaseContext";
 import { Plus, Edit, Trash2, X, Building2 } from "lucide-react";
 import Loader from "../components/common/Loader";
+import { getAssets } from "../services/db";
 
 export default function CompanyMaster() {
     const { companies, addCompany, updateCompany, deleteCompany, getBranches } = useDatabase();
@@ -24,18 +25,29 @@ export default function CompanyMaster() {
         // Fetch branch and asset counts for each company
         const fetchCounts = async () => {
             const counts = {};
-            for (const company of companies) {
-                try {
-                    const branches = await getBranches(company.id);
-                    counts[company.id] = {
-                        branches: branches.length,
-                        assets: 0 // Will be updated when we integrate with assets
-                    };
-                } catch (error) {
-                    console.error(`Error fetching data for ${company.name}:`, error);
-                    counts[company.id] = { branches: 0, assets: 0 };
+
+            try {
+                const allAssets = await getAssets();
+
+                for (const company of companies) {
+                    try {
+                        const branches = await getBranches(company.id);
+                        // Count assets for this company
+                        const companyAssets = allAssets.filter(asset => asset.companyId === company.id);
+
+                        counts[company.id] = {
+                            branches: branches.length,
+                            assets: companyAssets.length
+                        };
+                    } catch (error) {
+                        console.error(`Error fetching data for ${company.name}:`, error);
+                        counts[company.id] = { branches: 0, assets: 0 };
+                    }
                 }
+            } catch (error) {
+                console.error('Error fetching assets:', error);
             }
+
             setCompanyCounts(counts);
         };
 
