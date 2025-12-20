@@ -22,7 +22,7 @@ export default function CompanyDetails() {
         location: "",
         locationCode: ""
     });
-    const [importing, setImporting] = useState(false);
+
     const [branchAssets, setBranchAssets] = useState({});
     const [selectedBranch, setSelectedBranch] = useState(null);
     const [branchAssetsList, setBranchAssetsList] = useState([]);
@@ -147,58 +147,7 @@ export default function CompanyDetails() {
         setBranchAssetsList([]);
     };
 
-    const handleBulkImportMCFL = async () => {
-        const mcflBranches = [
-            { name: "Head Office", branchCode: "HO", location: "Head Office", locationCode: "" },
-            { name: "Vile Parle", branchCode: "VLP", location: "Vile Parle", locationCode: "" },
-            { name: "Vashi", branchCode: "VSH", location: "Vashi", locationCode: "" },
-            { name: "Virar", branchCode: "VR", location: "Virar", locationCode: "" },
-            { name: "Malad", branchCode: "MDD", location: "Malad", locationCode: "" },
-            { name: "Dombivli", branchCode: "DI", location: "Dombivli", locationCode: "" },
-            { name: "Dharavi", branchCode: "DH", location: "Dharavi", locationCode: "" },
-            { name: "Panvel", branchCode: "PNVL", location: "Panvel", locationCode: "" },
-            { name: "Surat", branchCode: "ST", location: "Surat", locationCode: "" },
-            { name: "Rajkot", branchCode: "RJT", location: "Rajkot", locationCode: "" },
-            { name: "Mira Road", branchCode: "MIRA", location: "Mira Road", locationCode: "" },
-            { name: "Badlapur", branchCode: "BUD", location: "Badlapur", locationCode: "" },
-            { name: "Kalyan", branchCode: "KYN", location: "Kalyan", locationCode: "" },
-            { name: "Kalavad", branchCode: "KLVD", location: "Kalavad", locationCode: "" },
-            { name: "Vasai", branchCode: "BSR", location: "Vasai", locationCode: "" },
-            { name: "Surendranagar", branchCode: "SUNR", location: "Surendranagar", locationCode: "" },
-            { name: "Prabhadevi", branchCode: "PBHD", location: "Prabhadevi", locationCode: "" },
-            { name: "JaiHindCottage", branchCode: "JHC", location: "JaiHindCottage", locationCode: "" },
-            { name: "Thane", branchCode: "TNA", location: "Thane", locationCode: "" },
-            { name: "Mavdi", branchCode: "MVD", location: "Mavdi", locationCode: "" },
-            { name: "Ambernath", branchCode: "ABH", location: "Ambernath", locationCode: "" },
-            { name: "Kankroli", branchCode: "KDL", location: "Kankroli", locationCode: "" },
-            { name: "Sunderwas", branchCode: "SDW", location: "Sunderwas", locationCode: "" },
-            { name: "Bhayandar", branchCode: "BYR", location: "Bhayandar", locationCode: "" },
-            { name: "Nathdwara", branchCode: "NDT", location: "Nathdwara", locationCode: "" },
-            { name: "Karjat", branchCode: "KJT", location: "Karjat", locationCode: "" }
-        ];
 
-        if (!window.confirm(`This will add ${mcflBranches.length} branches to ${company.name}. Continue?`)) {
-            return;
-        }
-
-        setImporting(true);
-        let successCount = 0;
-        let errorCount = 0;
-
-        for (const branch of mcflBranches) {
-            try {
-                await addBranch(id, branch);
-                successCount++;
-            } catch (error) {
-                console.error(`Failed to add ${branch.name}:`, error);
-                errorCount++;
-            }
-        }
-
-        await refreshBranches();
-        setImporting(false);
-        alert(`Import complete! Added: ${successCount}, Failed: ${errorCount}`);
-    };
 
     if (loading) return <Loader />;
     if (!company) return <div className="p-8 text-center">Company not found.</div>;
@@ -225,15 +174,7 @@ export default function CompanyDetails() {
                 </div>
                 <div className="ml-auto">
                     <div className="flex gap-2">
-                        {company.companyCode === "MCFL" && (
-                            <button
-                                onClick={handleBulkImportMCFL}
-                                disabled={importing}
-                                className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition shadow-sm disabled:opacity-50"
-                            >
-                                <Building size={20} /> {importing ? "Importing..." : "Bulk Import MCFL Branches"}
-                            </button>
-                        )}
+
                         <button
                             onClick={() => handleOpenModal()}
                             className="bg-gray-800 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-gray-700 transition shadow-sm"

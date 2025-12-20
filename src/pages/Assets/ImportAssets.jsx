@@ -9,7 +9,7 @@ import { Upload, X, FileSpreadsheet } from "lucide-react";
 export default function ImportAssets({ onClose, onImportSuccess }) {
     const [uploading, setUploading] = useState(false);
     const [previewData, setPreviewData] = useState([]);
-    const { companies } = useDatabase();
+    const { companies, getBranches, brands } = useDatabase();
 
     const handleFileUpload = (e) => {
         const file = e.target.files[0];
@@ -37,37 +37,101 @@ export default function ImportAssets({ onClose, onImportSuccess }) {
         try {
             for (const row of previewData) {
                 try {
-                    // Map Excel columns to Firestore fields
-                    // Adjust keys based on actual Excel headers
+                    // Calculate Year of Acquisition and Warranty Expiry
+                    let yearOfAcquisition = "";
+                    let warrantyExpiry = row["Warranty Expiry"] || "";
+
+                    if (row["Date of Acquisition"]) {
+                        const date = new Date(row["Date of Acquisition"]);
+                        yearOfAcquisition = date.getFullYear();
+
+                        // Calculate 1 year warranty if not provided
+                        if (!warrantyExpiry) {
+                            const warrantyDate = new Date(date);
+                            warrantyDate.setFullYear(warrantyDate.getFullYear() + 1);
+                            warrantyExpiry = warrantyDate.toISOString().split('T')[0];
+                        }
+                    }
+
+                    // Match Company
+                    const companyMatch = companies.find(c =>
+                        c.name?.toLowerCase() === row["Company"]?.toLowerCase() ||
+                        c.companyCode?.toLowerCase() === row["Company"]?.toLowerCase()
+                    );
+
+                    let companyId = "";
+                    let companyName = row["Company"] || "";
+                    let companyCode = "";
+                    let branch = row["Branch"] || "";
+                    let branchCode = "";
+                    let location = row["Location"] || "";
+                    let locationCode = "";
+
+                    if (companyMatch) {
+                        companyId = companyMatch.id;
+                        companyName = companyMatch.name;
+                        companyCode = companyMatch.companyCode || "";
+
+                        // Match Branch within company
+                        const branchesData = await getBranches(companyMatch.id);
+                        const branchMatch = branchesData.find(b =>
+                            b.name?.toLowerCase() === row["Branch"]?.toLowerCase() ||
+                            b.branchCode?.toLowerCase() === row["Branch"]?.toLowerCase()
+                        );
+
+                        if (branchMatch) {
+                            branch = branchMatch.name;
+                            branchCode = branchMatch.branchCode || "";
+                            location = branchMatch.location || row["Location"] || "";
+                            locationCode = branchMatch.locationCode || "";
+                        }
+                    }
+
+                    // Match Brand
+                    let brandId = "";
+                    let brandName = row["Brand"] || "";
+
+                    if (row["Brand"]) {
+                        const brandMatch = brands.find(b =>
+                            b.name?.toLowerCase() === row["Brand"]?.toLowerCase()
+                        );
+                        if (brandMatch) {
+                            brandId = brandMatch.id;
+                            brandName = brandMatch.name;
+                        }
+                    }
+
+                    // Build asset data
                     const assetData = {
                         urn: row["URN"] || "",
                         dateOfAcquisition: row["Date of Acquisition"] || "",
-                        yearOfAcquisition: row["Year of Acquisition"] || "",
-                        companyName: row["Company"] || "",
-                        branch: row["Branch"] || "", // Assuming Branch is in Excel
-                        location: row["Location"] || "",
-                        locationCode: row["Location Code"] || "",
+                        yearOfAcquisition: yearOfAcquisition,
+                        companyId: companyId,
+                        companyName: companyName,
+                        companyCode: companyCode,
+                        branch: branch,
+                        branchCode: branchCode,
+                        location: location,
+                        locationCode: locationCode,
                         product: row["Product"] || "",
                         productCode: row["Product Code"] || "",
-                        productSerialNumber: row["Product Serial Number"] || "",
-                        config: row["Config"] || "", // Assuming Config column exists
-                        taggingNo: row["Tagging No."] || "",
+                        productSerialNumber: row["Serial Number"] || row["Product Serial Number"] || "",
+                        brandId: brandId,
+                        brandName: brandName,
+                        model: row["Model"] || "",
+                        config: row["Config"] || row["Configuration"] || "",
+                        taggingNo: row["Tagging No"] || row["Tagging No."] || "",
                         purchasedFrom: row["Purchased From"] || "",
-                        warrantyExpiry: row["Warranty Expiry"] || "",
+                        invoiceNumber: row["Invoice Number"] || "",
+                        amount: row["Amount"] || "",
+                        warrantyExpiry: warrantyExpiry,
                         status: row["Status"] || "Active",
+                        assignedTo: row["Assigned To"] || "Stock",
+                        employeeId: row["Employee ID"] || "N/A",
+                        assignedDate: row["Assigned Date"] || null,
                         createdAt: serverTimestamp(),
                         updatedAt: serverTimestamp()
                     };
-
-                    // Try to link to existing Company ID if possible
-                    const companyMatch = companies.find(c =>
-                        c.name?.toLowerCase() === assetData.companyName?.toLowerCase() &&
-                        c.branch?.toLowerCase() === assetData.branch?.toLowerCase()
-                    );
-
-                    if (companyMatch) {
-                        assetData.companyId = companyMatch.id;
-                    }
 
                     await addDoc(collection(db, "assets"), assetData);
                     successCount++;
