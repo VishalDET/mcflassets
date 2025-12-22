@@ -42,6 +42,26 @@ export default function BrandMaster() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Check for duplicates
+        const isDuplicateName = brands.some(b =>
+            b.name.toLowerCase() === formData.name.toLowerCase() &&
+            b.id !== editingId
+        );
+        const isDuplicateCode = formData.code && brands.some(b =>
+            b.code?.toLowerCase() === formData.code.toLowerCase() &&
+            b.id !== editingId
+        );
+
+        if (isDuplicateName) {
+            toast.error(`Brand name "${formData.name}" already exists.`);
+            return;
+        }
+        if (isDuplicateCode) {
+            toast.error(`Brand code "${formData.code}" already exists.`);
+            return;
+        }
+
         try {
             if (editingId) {
                 await updateBrand(editingId, formData);

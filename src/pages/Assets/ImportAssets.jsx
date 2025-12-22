@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useDatabase } from "../../context/DatabaseContext";
 import { read, utils } from "xlsx";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, getDocs } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { toast } from "react-toastify";
 import { Upload, X, FileSpreadsheet } from "lucide-react";
@@ -34,10 +34,25 @@ export default function ImportAssets({ onClose, onImportSuccess }) {
 
         let successCount = 0;
         let errorCount = 0;
+        let duplicateCount = 0;
 
         try {
+            // Fetch existing URNs for duplicate check
+            const assetsSnapshot = await getDocs(collection(db, "assets"));
+            const existingUrns = new Set(assetsSnapshot.docs.map(doc => doc.data().urn?.toString().toLowerCase()));
+            const importedUrnsInBatch = new Set();
+
             for (const row of previewData) {
                 try {
+                    const currentUrn = row["URN"] ? row["URN"].toString().toLowerCase() : "";
+
+                    // Check for duplicate URN in system or current batch
+                    if (currentUrn && (existingUrns.has(currentUrn) || importedUrnsInBatch.has(currentUrn))) {
+                        duplicateCount++;
+                        continue;
+                    }
+
+                    if (currentUrn) importedUrnsInBatch.add(currentUrn);
                     // Calculate Year of Acquisition and Warranty Expiry
                     let yearOfAcquisition = "";
                     let dateOfAcquisition = parseTemplateDate(row["Date of Acquisition"]) || "";
@@ -144,10 +159,11 @@ export default function ImportAssets({ onClose, onImportSuccess }) {
                 }
             }
 
-            toast.success(`Imported ${successCount} assets successfully.`);
-            if (errorCount > 0) {
-                toast.warning(`Failed to import ${errorCount} assets.`);
-            }
+            let message = `Imported ${successCount} assets.`;
+            if (duplicateCount > 0) message += ` ${duplicateCount} duplicates skipped.`;
+            if (errorCount > 0) message += ` ${errorCount} errors.`;
+
+            toast.success(message);
             onImportSuccess();
             onClose();
         } catch (error) {

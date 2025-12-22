@@ -68,7 +68,6 @@ export default function EditAsset() {
                         amount: asset.amount || "",
                         warrantyExpiry: asset.warrantyExpiry || "",
                         invoiceUrl: asset.invoiceUrl || "",
-                        invoiceUrl: asset.invoiceUrl || "",
                         status: asset.status || "Active",
                         employeeId: asset.employeeId || "",
                         employeeName: asset.employeeName || ""

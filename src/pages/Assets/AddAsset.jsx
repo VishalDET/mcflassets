@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useDatabase } from "../../context/DatabaseContext";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Save } from "lucide-react";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { toast } from "react-toastify";
 import { Upload, X, FileText } from "lucide-react";
@@ -186,6 +186,16 @@ export default function AddAsset() {
         setLoading(true);
 
         try {
+            // Check for duplicate URN
+            const urnQuery = query(collection(db, "assets"), where("urn", "==", formData.urn));
+            const urnSnapshot = await getDocs(urnQuery);
+
+            if (!urnSnapshot.empty) {
+                toast.error(`URN "${formData.urn}" already exists.`);
+                setLoading(false);
+                return;
+            }
+
             let invoiceUrl = "";
 
             // Upload Invoice if selected

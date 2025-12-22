@@ -154,6 +154,18 @@ export default function EmployeeMaster() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Check for duplicate Employee ID
+        const isDuplicate = employees.some(emp =>
+            emp.employeeId.toLowerCase() === formData.employeeId.toLowerCase() &&
+            emp.id !== editingId
+        );
+
+        if (isDuplicate) {
+            toast.error(`Employee ID "${formData.employeeId}" is already assigned to another employee.`);
+            return;
+        }
+
         try {
             if (editingId) {
                 await updateEmployee(editingId, formData);
@@ -217,11 +229,25 @@ export default function EmployeeMaster() {
         let errorCount = 0;
 
         try {
+            const existingEmployeeIds = new Set(employees.map(emp => emp.employeeId.toLowerCase()));
+            const importedIdsInBatch = new Set();
+            let duplicateCount = 0;
+
             for (const row of importPreview) {
-                if (!row["Employee Name"] || !row["Employee ID"] || !row["Company Name"]) {
+                const empId = row["Employee ID"] ? row["Employee ID"].toString().toLowerCase() : "";
+
+                if (!row["Employee Name"] || !empId || !row["Company Name"]) {
                     errorCount++;
                     continue;
                 }
+
+                // Check for duplicate in system or in current batch
+                if (existingEmployeeIds.has(empId) || importedIdsInBatch.has(empId)) {
+                    duplicateCount++;
+                    continue;
+                }
+
+                importedIdsInBatch.add(empId);
 
                 const company = companies.find(c => c.name.toLowerCase() === row["Company Name"].toString().toLowerCase());
                 if (!company) {
@@ -232,11 +258,6 @@ export default function EmployeeMaster() {
                 let branchId = "";
                 let branchName = "";
                 if (row["Branch Name"]) {
-                    // Try to finding branch (simplified)
-                    // Note: In a real simplified import, we might skip fetching if not critical, 
-                    // but we need IDs. 
-                    // Let's do a best effort fetch on demand or skip if too slow. 
-                    // Given this runs on client, sequential await is fine for small batches.
                     try {
                         const companyBranches = await getBranches(company.id);
                         const branch = companyBranches.find(b => b.name.toLowerCase() === row["Branch Name"].toString().toLowerCase());
@@ -263,7 +284,12 @@ export default function EmployeeMaster() {
                 await addEmployee(newEmployee);
                 successCount++;
             }
-            toast.success(`Imported ${successCount} employees. ${errorCount} failed/skipped.`);
+
+            let message = `Imported ${successCount} employees.`;
+            if (duplicateCount > 0) message += ` ${duplicateCount} duplicates skipped.`;
+            if (errorCount > 0) message += ` ${errorCount} errors.`;
+
+            toast.success(message);
             setIsImportModalOpen(false);
             setImportPreview([]);
         } catch (error) {
