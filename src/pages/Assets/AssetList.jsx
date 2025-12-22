@@ -257,7 +257,7 @@ export default function AssetList() {
                     {currentUser?.role === 'Admin' && (
                         <Link
                             to="/assets/bin"
-                            className="bg-red-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-red-700 transition shadow-sm font-medium"
+                            className="bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-800 transition shadow-sm font-medium"
                             title="Recycle Bin"
                         >
                             <History size={20} /> Recycle Bin
