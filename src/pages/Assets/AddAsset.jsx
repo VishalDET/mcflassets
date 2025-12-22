@@ -43,7 +43,8 @@ export default function AddAsset() {
         invoiceNumber: "",
         amount: "",
         warrantyExpiry: "",
-        status: "Active"
+        status: "Active",
+        isDeleted: false
     });
 
     // Auto-generate URN on mount - DISABLED for manual entry of old data

@@ -5,18 +5,22 @@ import { db } from '../../services/firebase';
 import { formatDate } from '../../utils/dateUtils';
 import Loader from '../common/Loader';
 
-export default function AssignmentDetailsModal({ assetId, onClose }) {
+export default function AssignmentDetailsModal({ asset, onClose }) {
     const [transfer, setTransfer] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     useEffect(() => {
         const fetchAssignmentDetails = async () => {
-            // 1. Fetch the latest transfer for this asset properly
+            if (!asset?.id) {
+                setLoading(false);
+                return;
+            }
+
             try {
                 const q = query(
                     collection(db, "transfers"),
-                    where("assetId", "==", assetId),
+                    where("assetId", "==", asset.id),
                     orderBy("transferDate", "desc"),
                     limit(1)
                 );
@@ -24,6 +28,17 @@ export default function AssignmentDetailsModal({ assetId, onClose }) {
                 const querySnapshot = await getDocs(q);
                 if (!querySnapshot.empty) {
                     setTransfer(querySnapshot.docs[0].data());
+                } else if (asset.status === 'Assigned' && asset.assignedTo) {
+                    // Fallback for imported assets that have assignment data but no transfer history
+                    setTransfer({
+                        assignedTo: asset.assignedTo,
+                        employeeId: asset.employeeId,
+                        toCompany: asset.companyName,
+                        toBranch: asset.branch,
+                        toLocation: asset.location,
+                        assignedDate: asset.assignedDate || null,
+                        reason: "Initial Import Assignment"
+                    });
                 } else {
                     setError("No assignment records found.");
                 }
@@ -35,10 +50,8 @@ export default function AssignmentDetailsModal({ assetId, onClose }) {
             }
         };
 
-        if (assetId) {
-            fetchAssignmentDetails();
-        }
-    }, [assetId]);
+        fetchAssignmentDetails();
+    }, [asset]);
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4 animate-fade-in">

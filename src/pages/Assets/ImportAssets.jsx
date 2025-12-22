@@ -5,6 +5,7 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { toast } from "react-toastify";
 import { Upload, X, FileSpreadsheet } from "lucide-react";
+import { parseTemplateDate } from "../../utils/dateUtils";
 
 export default function ImportAssets({ onClose, onImportSuccess }) {
     const [uploading, setUploading] = useState(false);
@@ -39,10 +40,11 @@ export default function ImportAssets({ onClose, onImportSuccess }) {
                 try {
                     // Calculate Year of Acquisition and Warranty Expiry
                     let yearOfAcquisition = "";
-                    let warrantyExpiry = row["Warranty Expiry"] || "";
+                    let dateOfAcquisition = parseTemplateDate(row["Date of Acquisition"]) || "";
+                    let warrantyExpiry = parseTemplateDate(row["Warranty Expiry"]) || "";
 
-                    if (row["Date of Acquisition"]) {
-                        const date = new Date(row["Date of Acquisition"]);
+                    if (dateOfAcquisition) {
+                        const date = new Date(dateOfAcquisition);
                         yearOfAcquisition = date.getFullYear();
 
                         // Calculate 1 year warranty if not provided
@@ -104,7 +106,7 @@ export default function ImportAssets({ onClose, onImportSuccess }) {
                     // Build asset data
                     const assetData = {
                         urn: row["URN"] || "",
-                        dateOfAcquisition: row["Date of Acquisition"] || "",
+                        dateOfAcquisition: dateOfAcquisition,
                         yearOfAcquisition: yearOfAcquisition,
                         companyId: companyId,
                         companyName: companyName,
@@ -128,7 +130,8 @@ export default function ImportAssets({ onClose, onImportSuccess }) {
                         status: row["Status"] || "Active",
                         assignedTo: row["Assigned To"] || "Stock",
                         employeeId: row["Employee ID"] || "N/A",
-                        assignedDate: row["Assigned Date"] || null,
+                        assignedDate: parseTemplateDate(row["Assigned Date"]) || null,
+                        isDeleted: false,
                         createdAt: serverTimestamp(),
                         updatedAt: serverTimestamp()
                     };
@@ -150,7 +153,8 @@ export default function ImportAssets({ onClose, onImportSuccess }) {
         } catch (error) {
             console.error("Import failed:", error);
             toast.error("Critical error during import.");
-        } finally {
+        }
+        finally {
             setUploading(false);
         }
     };
@@ -162,9 +166,18 @@ export default function ImportAssets({ onClose, onImportSuccess }) {
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                         <FileSpreadsheet className="text-green-600" /> Import Assets from Excel
                     </h2>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-                        <X size={24} />
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <a
+                            href="/asset-import-template.csv"
+                            download
+                            className="flex items-center gap-2 text-sm text-green-600 hover:text-green-700 font-medium border border-green-200 bg-green-50 px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                            <FileSpreadsheet size={16} /> Download Template
+                        </a>
+                        <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+                            <X size={24} />
+                        </button>
+                    </div>
                 </div>
 
                 <div className="space-y-6">

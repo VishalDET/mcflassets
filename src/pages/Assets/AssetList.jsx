@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Plus, Search, Filter, Eye, Edit, Trash2, Upload } from "lucide-react";
-import { collection, onSnapshot, query, orderBy, deleteDoc, doc } from "firebase/firestore";
+import { collection, onSnapshot, query, orderBy, deleteDoc, doc, writeBatch, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { toast } from "react-toastify";
 import ImportAssets from "./ImportAssets";
@@ -9,16 +9,19 @@ import Loader from "../../components/common/Loader";
 import AssignmentDetailsModal from "../../components/Assets/AssignmentDetailsModal";
 import { useDatabase } from "../../context/DatabaseContext";
 import { formatDate } from "../../utils/dateUtils";
-import { AlertTriangle, TrendingUp, Calendar, CheckCircle, XCircle, Clock } from "lucide-react";
+import { AlertTriangle, TrendingUp, Calendar, CheckCircle, XCircle, Clock, CheckSquare, Square, Trash, History } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 
 export default function AssetList() {
     const { companies, products } = useDatabase();
+    const { currentUser } = useAuth();
     const navigate = useNavigate();
     const [assets, setAssets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [selectedAssetForAssignment, setSelectedAssetForAssignment] = useState(null);
+    const [selectedAssetIds, setSelectedAssetIds] = useState([]);
 
     // Filters & Sorting State
     const [filters, setFilters] = useState({
@@ -36,11 +39,14 @@ export default function AssetList() {
     useEffect(() => {
         const q = query(collection(db, "assets"), orderBy("createdAt", "desc")); // Default fetch order
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const data = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
+            const data = snapshot.docs
+                .map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }))
+                .filter(asset => !asset.isDeleted); // Soft-delete filter
             setAssets(data);
+            setSelectedAssetIds([]); // Clear selection on data change
             setTimeout(() => setLoading(false), 500);
         }, (error) => {
             console.error("Error fetching assets:", error);
@@ -54,12 +60,82 @@ export default function AssetList() {
     const handleDelete = async (id) => {
         if (window.confirm("Are you sure you want to delete this asset?")) {
             try {
-                await deleteDoc(doc(db, "assets", id));
+                await updateDoc(doc(db, "assets", id), {
+                    isDeleted: true,
+                    deletedAt: serverTimestamp(),
+                    updatedAt: serverTimestamp()
+                });
                 toast.success("Asset deleted successfully");
+                setSelectedAssetIds(prev => prev.filter(item => item !== id));
             } catch (error) {
                 console.error("Error deleting asset:", error);
                 toast.error("Failed to delete asset");
             }
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        const activeIds = paginatedAssets
+            .filter(a => selectedAssetIds.includes(a.id) && a.status === 'Active')
+            .map(a => a.id);
+
+        if (activeIds.length === 0) {
+            toast.warning("No active assets selected for deletion.");
+            return;
+        }
+
+        if (window.confirm(`Are you sure you want to delete ${activeIds.length} selected active assets? Assigned assets will be skipped.`)) {
+            setLoading(true);
+            try {
+                const batch = writeBatch(db);
+                activeIds.forEach(id => {
+                    batch.update(doc(db, "assets", id), {
+                        isDeleted: true,
+                        deletedAt: serverTimestamp(),
+                        updatedAt: serverTimestamp()
+                    });
+                });
+                await batch.commit();
+                toast.success(`${activeIds.length} assets deleted successfully`);
+                setSelectedAssetIds([]);
+            } catch (error) {
+                console.error("Error in bulk delete:", error);
+                toast.error("Failed to delete assets");
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
+    const toggleSelection = (id, status) => {
+        if (status !== 'Active') {
+            toast.info("Only 'Active' assets can be selected for deletion.");
+            return;
+        }
+        setSelectedAssetIds(prev =>
+            prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+        );
+    };
+
+    const toggleSelectAll = () => {
+        const activePaginatedIds = paginatedAssets
+            .filter(a => a.status === 'Active')
+            .map(a => a.id);
+
+        const areAllActiveSelected = activePaginatedIds.every(id => selectedAssetIds.includes(id));
+
+        if (areAllActiveSelected) {
+            // Unselect active assets on current page
+            setSelectedAssetIds(prev => prev.filter(id => !activePaginatedIds.includes(id)));
+        } else {
+            // Select all active assets on current page
+            setSelectedAssetIds(prev => {
+                const newIds = [...prev];
+                activePaginatedIds.forEach(id => {
+                    if (!newIds.includes(id)) newIds.push(id);
+                });
+                return newIds;
+            });
         }
     };
 
@@ -76,10 +152,11 @@ export default function AssetList() {
     const filteredAssets = assets.filter(asset => {
         // Search Term
         const matchesSearch = !searchTerm || (
-            (asset.product && asset.product.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (asset.taggingNo && asset.taggingNo.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (asset.companyName && asset.companyName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (asset.productSerialNumber && asset.productSerialNumber.toLowerCase().includes(searchTerm.toLowerCase()))
+            String(asset.product || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+            String(asset.taggingNo || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+            String(asset.companyName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+            String(asset.productSerialNumber || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+            String(asset.urn || "").toLowerCase().includes(searchTerm.toLowerCase())
         );
 
         // Filters
@@ -157,6 +234,14 @@ export default function AssetList() {
                     <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm font-medium border border-gray-200 flex items-center">
                         Total: {filteredAssets.length}
                     </span>
+                    {selectedAssetIds.length > 0 && (
+                        <button
+                            onClick={handleBulkDelete}
+                            className="bg-red-50 text-red-600 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-red-100 border border-red-200 transition shadow-sm font-medium"
+                        >
+                            <Trash2 size={20} /> Delete ({selectedAssetIds.length})
+                        </button>
+                    )}
                     <button
                         onClick={() => setIsImportModalOpen(true)}
                         className="bg-white text-gray-800 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-gray-100 border border-gray-300 transition shadow-sm"
@@ -169,6 +254,15 @@ export default function AssetList() {
                     >
                         <Plus size={20} /> Add Asset
                     </Link>
+                    {currentUser?.role === 'Admin' && (
+                        <Link
+                            to="/assets/bin"
+                            className="bg-red-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-red-700 transition shadow-sm font-medium"
+                            title="Recycle Bin"
+                        >
+                            <History size={20} /> Recycle Bin
+                        </Link>
+                    )}
                 </div>
             </div>
 
@@ -260,6 +354,14 @@ export default function AssetList() {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-800">
                             <tr>
+                                <th className="px-6 py-3 text-left">
+                                    <input
+                                        type="checkbox"
+                                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                        checked={paginatedAssets.length > 0 && paginatedAssets.filter(a => a.status === 'Active').every(a => selectedAssetIds.includes(a.id))}
+                                        onChange={toggleSelectAll}
+                                    />
+                                </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Tagging No</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Product</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Company</th>
@@ -271,13 +373,22 @@ export default function AssetList() {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {paginatedAssets.length === 0 ? (
                                 <tr>
-                                    <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                                    <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
                                         No assets found matching your search.
                                     </td>
                                 </tr>
                             ) : (
                                 paginatedAssets.map((asset) => (
-                                    <tr key={asset.id} className="hover:bg-gray-50 transition-colors">
+                                    <tr key={asset.id} className={`${selectedAssetIds.includes(asset.id) ? 'bg-blue-50' : 'hover:bg-gray-50'} transition-colors`}>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <input
+                                                type="checkbox"
+                                                className={`h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer ${asset.status !== 'Active' ? 'opacity-20 cursor-not-allowed' : ''}`}
+                                                checked={selectedAssetIds.includes(asset.id)}
+                                                onChange={() => toggleSelection(asset.id, asset.status)}
+                                                disabled={asset.status !== 'Active'}
+                                            />
+                                        </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">{asset.taggingNo}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                             <div className="font-medium">{asset.product}</div>
@@ -318,9 +429,11 @@ export default function AssetList() {
                                                 <Link to={`/assets/${asset.id}/edit`} className="text-gray-400 hover:text-gray-600">
                                                     <Edit size={18} />
                                                 </Link>
-                                                <button onClick={() => handleDelete(asset.id)} className="text-red-400 hover:text-red-600">
-                                                    <Trash2 size={18} />
-                                                </button>
+                                                {asset.status === 'Active' && (
+                                                    <button onClick={() => handleDelete(asset.id)} className="text-red-400 hover:text-red-600">
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -414,7 +527,7 @@ export default function AssetList() {
 
             {selectedAssetForAssignment && (
                 <AssignmentDetailsModal
-                    assetId={selectedAssetForAssignment.id}
+                    asset={selectedAssetForAssignment}
                     onClose={() => setSelectedAssetForAssignment(null)}
                 />
             )}

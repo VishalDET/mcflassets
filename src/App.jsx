@@ -19,10 +19,10 @@ import SupplierMaster from "./pages/SupplierMaster";
 import BrandMaster from "./pages/BrandMaster";
 import EmployeeMaster from "./pages/EmployeeMaster";
 import UserProfile from "./pages/UserProfile";
+import Bin from "./pages/Assets/Bin";
 import { DatabaseProvider } from "./context/DatabaseContext";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
 import { isConfigured } from "./services/firebase";
 
 function App() {
@@ -80,6 +80,11 @@ function App() {
                 </ProtectedRoute>
               } />
               <Route path="assets/:id" element={<AssetDetails />} />
+              <Route path="assets/bin" element={
+                <ProtectedRoute allowedRoles={['Admin']}>
+                  <Bin />
+                </ProtectedRoute>
+              } />
 
               {/* Transfers - Admin & Staff */}
               <Route path="transfers" element={
