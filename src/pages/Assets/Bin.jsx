@@ -52,28 +52,40 @@ export default function Bin() {
 
     const handleRestore = async (id) => {
         if (window.confirm("Restore this asset to inventory?")) {
+            setLoading(true); // Show loader for better feedback during action
             try {
                 await updateDoc(doc(db, "assets", id), {
                     isDeleted: false,
                     deletedAt: null,
                     updatedAt: serverTimestamp()
                 });
+                // Optimistic UI update: remove from local state immediately
+                setAssets(prev => prev.filter(asset => asset.id !== id));
+                setSelectedAssetIds(prev => prev.filter(itemId => itemId !== id));
                 toast.success("Asset restored successfully");
             } catch (error) {
                 console.error("Error restoring asset:", error);
                 toast.error("Failed to restore asset");
+            } finally {
+                setLoading(false);
             }
         }
     };
 
     const handlePermanentDelete = async (id) => {
         if (window.confirm("PERMANENTLY DELETE this asset? This action cannot be undone.")) {
+            setLoading(true);
             try {
                 await deleteDoc(doc(db, "assets", id));
+                // Optimistic UI update
+                setAssets(prev => prev.filter(asset => asset.id !== id));
+                setSelectedAssetIds(prev => prev.filter(itemId => itemId !== id));
                 toast.success("Asset permanently deleted");
             } catch (error) {
                 console.error("Error deleting asset:", error);
                 toast.error("Failed to delete asset permanently");
+            } finally {
+                setLoading(false);
             }
         }
     };
@@ -93,8 +105,12 @@ export default function Bin() {
                     });
                 });
                 await batch.commit();
-                toast.success(`${selectedAssetIds.length} assets restored`);
+
+                // Optimistic UI update
+                const restoredIds = [...selectedAssetIds];
+                setAssets(prev => prev.filter(asset => !restoredIds.includes(asset.id)));
                 setSelectedAssetIds([]);
+                toast.success(`${restoredIds.length} assets restored`);
             } catch (error) {
                 console.error("Error bulk restoring:", error);
                 toast.error("Failed to restore assets");
@@ -115,8 +131,12 @@ export default function Bin() {
                     batch.delete(doc(db, "assets", id));
                 });
                 await batch.commit();
-                toast.success(`${selectedAssetIds.length} assets permanently deleted`);
+
+                // Optimistic UI update
+                const deletedIds = [...selectedAssetIds];
+                setAssets(prev => prev.filter(asset => !deletedIds.includes(asset.id)));
                 setSelectedAssetIds([]);
+                toast.success(`${deletedIds.length} assets permanently deleted`);
             } catch (error) {
                 console.error("Error bulk deleting permanently:", error);
                 toast.error("Failed to delete assets permanently");
