@@ -45,7 +45,7 @@ export default function Reports() {
     };
 
     const applyFilters = () => {
-        let result = [...assets];
+        let result = assets.filter(asset => !asset.isDeleted); // Exclude deleted assets
 
         // Filter by Company
         if (filters.companyId) {
@@ -57,12 +57,29 @@ export default function Reports() {
             result = result.filter(asset => asset.status === filters.status);
         }
 
+        // Helper to convert various date formats to a comparable Date object
+        const getComparableDate = (dateVal) => {
+            if (!dateVal) return null;
+            if (dateVal.seconds) return new Date(dateVal.seconds * 1000); // Firestore Timestamp or similar
+            return new Date(dateVal);
+        };
+
         // Filter by Date Range (Acquisition Date)
         if (filters.startDate) {
-            result = result.filter(asset => new Date(asset.dateOfAcquisition) >= new Date(filters.startDate));
+            const start = new Date(filters.startDate);
+            start.setHours(0, 0, 0, 0);
+            result = result.filter(asset => {
+                const acqDate = getComparableDate(asset.dateOfAcquisition);
+                return acqDate && acqDate >= start;
+            });
         }
         if (filters.endDate) {
-            result = result.filter(asset => new Date(asset.dateOfAcquisition) <= new Date(filters.endDate));
+            const end = new Date(filters.endDate);
+            end.setHours(23, 59, 59, 999);
+            result = result.filter(asset => {
+                const acqDate = getComparableDate(asset.dateOfAcquisition);
+                return acqDate && acqDate <= end;
+            });
         }
 
         setFilteredAssets(result);

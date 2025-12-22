@@ -332,75 +332,77 @@ export default function EmployeeMaster() {
                 </select>
             </div>
 
-            <div className="bg-white rounded-lg shadow overflow-hidden border border-gray-200">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-800">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider w-16">S.No</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Employee ID</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Name</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Company</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Contact</th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-100 uppercase tracking-wider">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {filteredEmployees.length === 0 ? (
+            <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
+                <div className="overflow-x-auto max-w-full">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-800">
                             <tr>
-                                <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
-                                    No employees found matching your criteria.
-                                </td>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider w-16">S.No</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Employee ID</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Name</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Company</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Contact</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-100 uppercase tracking-wider">Actions</th>
                             </tr>
-                        ) : (
-                            filteredEmployees.map((employee, index) => (
-                                <tr key={employee.id} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{index + 1}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{employee.employeeId || '-'}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{employee.employeeName}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <div className="flex flex-col">
-                                            <span>{employee.companyName}</span>
-                                            {employee.branchName && (
-                                                <span className="text-xs text-gray-400">{employee.branchName}</span>
-                                            )}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <div className="flex flex-col">
-                                            <span>{employee.contactEmail || '-'}</span>
-                                            <span className="text-xs text-gray-400">{employee.contactNumber}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <div className="flex justify-end gap-3">
-                                            <button
-                                                onClick={() => handleView(employee)}
-                                                className="text-gray-400 hover:text-gray-600 transition-colors"
-                                                title="View Details"
-                                            >
-                                                <Eye size={18} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleOpenModal(employee)}
-                                                className="text-blue-400 hover:text-blue-600 transition-colors"
-                                                title="Edit"
-                                            >
-                                                <Edit size={18} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(employee.id)}
-                                                className="text-red-400 hover:text-red-600 transition-colors"
-                                                title="Delete"
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
-                                        </div>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {filteredEmployees.length === 0 ? (
+                                <tr>
+                                    <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                                        No employees found matching your criteria.
                                     </td>
                                 </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+                            ) : (
+                                filteredEmployees.map((employee, index) => (
+                                    <tr key={employee.id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{index + 1}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{employee.employeeId || '-'}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{employee.employeeName}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            <div className="flex flex-col">
+                                                <span>{employee.companyName}</span>
+                                                {employee.branchName && (
+                                                    <span className="text-xs text-gray-400">{employee.branchName}</span>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            <div className="flex flex-col">
+                                                <span>{employee.contactEmail || '-'}</span>
+                                                <span className="text-xs text-gray-400">{employee.contactNumber}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <div className="flex justify-end gap-3">
+                                                <button
+                                                    onClick={() => handleView(employee)}
+                                                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                                                    title="View Details"
+                                                >
+                                                    <Eye size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleOpenModal(employee)}
+                                                    className="text-blue-400 hover:text-blue-600 transition-colors"
+                                                    title="Edit"
+                                                >
+                                                    <Edit size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(employee.id)}
+                                                    className="text-red-400 hover:text-red-600 transition-colors"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {/* Import Modal */}
@@ -648,7 +650,9 @@ export default function EmployeeMaster() {
                                         Loading assets...
                                     </div>
                                 ) : (
-                                    <AssetSummary assets={employeeAssets} />
+                                    <div className="max-h-64 overflow-y-auto pr-1 custom-scrollbar">
+                                        <AssetSummary assets={employeeAssets} />
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -672,6 +676,6 @@ export default function EmployeeMaster() {
                     </div>
                 </div>
             )}
-        </div >
+        </div>
     );
 }

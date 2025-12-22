@@ -107,9 +107,48 @@ export default function AssetList() {
         }
     };
 
+    const handleBulkUnassign = async () => {
+        const assignedIds = paginatedAssets
+            .filter(a => selectedAssetIds.includes(a.id) && a.status === 'Assigned')
+            .map(a => a.id);
+
+        if (assignedIds.length === 0) {
+            toast.warning("No assigned assets selected for unassignment.");
+            return;
+        }
+
+        if (window.confirm(`Are you sure you want to unassign ${assignedIds.length} selected assets and return them to Stock?`)) {
+            setLoading(true);
+            try {
+                const batch = writeBatch(db);
+                assignedIds.forEach(id => {
+                    batch.update(doc(db, "assets", id), {
+                        status: 'Active',
+                        assignedTo: 'Stock',
+                        employeeId: 'N/A',
+                        assignedDate: null,
+                        updatedAt: serverTimestamp()
+                    });
+                });
+                await batch.commit();
+                toast.success(`${assignedIds.length} assets unassigned successfully`);
+                setSelectedAssetIds([]);
+            } catch (error) {
+                console.error("Error in bulk unassign:", error);
+                toast.error("Failed to unassign assets");
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
     const toggleSelection = (id, status) => {
-        if (status !== 'Active') {
-            toast.info("Only 'Active' assets can be selected for deletion.");
+        const isAuthorizedForUnassign = currentUser?.email === 'vishal@digitaledgetech.in';
+
+        if (status !== 'Active' && !(status === 'Assigned' && isAuthorizedForUnassign)) {
+            toast.info(isAuthorizedForUnassign ?
+                "Only 'Active' or 'Assigned' assets can be selected." :
+                "Only 'Active' assets can be selected for deletion.");
             return;
         }
         setSelectedAssetIds(prev =>
@@ -118,20 +157,22 @@ export default function AssetList() {
     };
 
     const toggleSelectAll = () => {
-        const activePaginatedIds = paginatedAssets
-            .filter(a => a.status === 'Active')
+        const isAuthorizedForUnassign = currentUser?.email === 'vishal@digitaledgetech.in';
+
+        const selectablePaginatedIds = paginatedAssets
+            .filter(a => a.status === 'Active' || (a.status === 'Assigned' && isAuthorizedForUnassign))
             .map(a => a.id);
 
-        const areAllActiveSelected = activePaginatedIds.every(id => selectedAssetIds.includes(id));
+        const areAllSelectableSelected = selectablePaginatedIds.every(id => selectedAssetIds.includes(id));
 
-        if (areAllActiveSelected) {
-            // Unselect active assets on current page
-            setSelectedAssetIds(prev => prev.filter(id => !activePaginatedIds.includes(id)));
+        if (areAllSelectableSelected) {
+            // Unselect selectable assets on current page
+            setSelectedAssetIds(prev => prev.filter(id => !selectablePaginatedIds.includes(id)));
         } else {
-            // Select all active assets on current page
+            // Select all selectable assets on current page
             setSelectedAssetIds(prev => {
                 const newIds = [...prev];
-                activePaginatedIds.forEach(id => {
+                selectablePaginatedIds.forEach(id => {
                     if (!newIds.includes(id)) newIds.push(id);
                 });
                 return newIds;
@@ -235,12 +276,24 @@ export default function AssetList() {
                         Total: {filteredAssets.length}
                     </span>
                     {selectedAssetIds.length > 0 && (
-                        <button
-                            onClick={handleBulkDelete}
-                            className="bg-red-50 text-red-600 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-red-100 border border-red-200 transition shadow-sm font-medium"
-                        >
-                            <Trash2 size={20} /> Delete ({selectedAssetIds.length})
-                        </button>
+                        <div className="flex gap-2">
+                            {paginatedAssets.some(a => selectedAssetIds.includes(a.id) && a.status === 'Active') && (
+                                <button
+                                    onClick={handleBulkDelete}
+                                    className="bg-red-50 text-red-600 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-red-100 border border-red-200 transition shadow-sm font-medium"
+                                >
+                                    <Trash2 size={20} /> Delete ({selectedAssetIds.filter(id => paginatedAssets.find(a => a.id === id)?.status === 'Active').length})
+                                </button>
+                            )}
+                            {currentUser?.email === 'vishal@digitaledgetech.in' && paginatedAssets.some(a => selectedAssetIds.includes(a.id) && a.status === 'Assigned') && (
+                                <button
+                                    onClick={handleBulkUnassign}
+                                    className="bg-blue-50 text-blue-600 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-100 border border-blue-200 transition shadow-sm font-medium"
+                                >
+                                    <History size={20} /> Unassign ({selectedAssetIds.filter(id => paginatedAssets.find(a => a.id === id)?.status === 'Assigned').length})
+                                </button>
+                            )}
+                        </div>
                     )}
                     <button
                         onClick={() => setIsImportModalOpen(true)}
@@ -383,10 +436,11 @@ export default function AssetList() {
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <input
                                                 type="checkbox"
-                                                className={`h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer ${asset.status !== 'Active' ? 'opacity-20 cursor-not-allowed' : ''}`}
+                                                className={`h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer 
+                                                    ${(asset.status !== 'Active' && !(asset.status === 'Assigned' && currentUser?.email === 'vishal@digitaledgetech.in')) ? 'opacity-20 cursor-not-allowed' : ''}`}
                                                 checked={selectedAssetIds.includes(asset.id)}
                                                 onChange={() => toggleSelection(asset.id, asset.status)}
-                                                disabled={asset.status !== 'Active'}
+                                                disabled={asset.status !== 'Active' && !(asset.status === 'Assigned' && currentUser?.email === 'vishal@digitaledgetech.in')}
                                             />
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">{asset.taggingNo}</td>
