@@ -17,8 +17,8 @@ function Stars(props) {
             <Points ref={ref} positions={sphere} stride={3} frustumCulled={false} {...props}>
                 <PointMaterial
                     transparent
-                    color="#4b4b4b"
-                    size={0.005}
+                    color="#ffffff"
+                    size={0.003}
                     sizeAttenuation={true}
                     depthWrite={false}
                 />
@@ -29,7 +29,7 @@ function Stars(props) {
 
 export default function ThreeBackground() {
     return (
-        <div className="fixed inset-0 z-0">
+        <div className="fixed inset-0 z-0 bg-[#020617] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-[#020617] to-[#020617]">
             <Canvas camera={{ position: [0, 0, 1] }}>
                 <Stars />
             </Canvas>

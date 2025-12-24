@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "firebase/auth";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, getDoc, doc } from "firebase/firestore";
 import { auth, db } from "../services/firebase";
 
 const AuthContext = createContext();
@@ -33,29 +33,70 @@ export function AuthProvider({ children }) {
 
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // Fetch user role from Firestore
                 try {
-                    // Query users collection for the email
-                    // Note: This assumes emails are stored in lowercase or exact match
-                    const q = query(collection(db, "users"), where("email", "==", user.email));
-                    const querySnapshot = await getDocs(q);
+                    console.log("Auth State Changed: User logged in", user.email, "UID:", user.uid);
 
-                    if (!querySnapshot.empty) {
-                        const userDoc = querySnapshot.docs[0].data();
-                        user.role = userDoc.role;
-                        user.dbId = querySnapshot.docs[0].id;
-                        console.log("User role found:", user.role);
-                    } else {
-                        console.log("No user document found for email:", user.email);
-                        // Default role
+                    // 1. Try to fetch by UID (best practice for rules)
+                    const userDocRef = doc(db, "users", user.uid);
+                    let userFound = false;
+                    try {
+                        const userDoc = await getDoc(userDocRef);
+                        if (userDoc.exists()) {
+                            const data = userDoc.data();
+                            user.role = data.role;
+                            user.dbId = userDoc.id;
+                            console.log("User document found by UID. Role:", user.role);
+                            userFound = true;
+                        }
+                    } catch (uidErr) {
+                        console.warn("Could not fetch user by UID (this is normal if UID is not document ID):", uidErr.message);
+                    }
+
+                    if (!userFound) {
+                        // 2. Fallback to query by email
+                        const userEmail = user.email.toLowerCase();
+                        console.log("Attempting query by email:", userEmail);
+                        const q = query(collection(db, "users"), where("email", "==", userEmail));
+                        const querySnapshot = await getDocs(q);
+
+                        if (!querySnapshot.empty) {
+                            const userDoc = querySnapshot.docs[0].data();
+                            user.role = userDoc.role;
+                            user.dbId = querySnapshot.docs[0].id;
+                            console.log("User document found by email query. Role:", user.role);
+                            userFound = true;
+                        } else {
+                            // Try exact match Case Sensitive
+                            console.log("No match for lowercase. Trying exact match:", user.email);
+                            const q2 = query(collection(db, "users"), where("email", "==", user.email));
+                            const qs2 = await getDocs(q2);
+                            if (!qs2.empty) {
+                                const userDoc = qs2.docs[0].data();
+                                user.role = userDoc.role;
+                                user.dbId = qs2.docs[0].id;
+                                console.log("User document found by exact email query. Role:", user.role);
+                                userFound = true;
+                            }
+                        }
+                    }
+
+                    if (!userFound) {
+                        console.warn("No user document found in Firestore for email:", user.email);
                         user.role = "Viewer";
+                        console.log("Defaulting to role:", user.role);
                     }
                 } catch (error) {
-                    console.error("Error fetching user role:", error);
+                    console.error("CRITICAL: Error fetching user role from Firestore:", error);
+                    // If it's a permission error on the USERS collection, we are in trouble
+                    if (error.code === 'permission-denied') {
+                        console.error("FATAL: Permission denied to read 'users' collection. Please check your Firestore Rules.");
+                    }
                     user.role = "Viewer";
+                    console.log("Defaulting to role due to error:", user.role);
                 }
             }
-            setCurrentUser(user);
+            // Use a shallow copy to ensure React detects the property changes (role, dbId)
+            setCurrentUser(user ? { ...user, role: user.role, dbId: user.dbId } : null);
             setLoading(false);
         });
 

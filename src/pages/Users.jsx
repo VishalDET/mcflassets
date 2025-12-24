@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { getUsers, addUser, updateUser, deleteUser } from "../services/db";
+import { getUsers, addUser, updateUser, deleteUser, setUser } from "../services/db";
 import { User, Plus, Shield, Edit, Trash2, X } from "lucide-react";
 import Loader from "../components/common/Loader";
 import { toast } from "react-toastify";
@@ -44,11 +44,12 @@ export default function Users() {
                 secondaryApp = initializeApp(firebaseConfig, "Secondary");
                 const secondaryAuth = getAuth(secondaryApp);
 
-                await createUserWithEmailAndPassword(secondaryAuth, data.email, data.password);
+                const userCredential = await createUserWithEmailAndPassword(secondaryAuth, data.email, data.password);
+                const uid = userCredential.user.uid;
 
-                // 2. Add user details to Firestore
+                // 2. Add user details to Firestore using UID as document ID
                 const { password, ...userData } = data;
-                await addUser(userData);
+                await setUser(uid, { ...userData, uid });
 
                 // 3. Download Credentials File
                 const element = document.createElement("a");

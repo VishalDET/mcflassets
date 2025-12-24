@@ -14,6 +14,7 @@ import {
 } from "firebase/firestore";
 import { getAssetsByEmployee } from "../services/db";
 import { toast } from "react-toastify";
+import { useAuth } from "./AuthContext";
 
 const DatabaseContext = createContext();
 
@@ -22,6 +23,8 @@ export function useDatabase() {
 }
 
 export function DatabaseProvider({ children }) {
+    const { currentUser } = useAuth();
+    console.log("DatabaseProvider: currentUser updated", currentUser?.email, "Role:", currentUser?.role);
     const [companies, setCompanies] = useState([]);
     const [products, setProducts] = useState([]);
     const [brands, setBrands] = useState([]);
@@ -29,6 +32,11 @@ export function DatabaseProvider({ children }) {
 
     // Fetch Companies
     useEffect(() => {
+        if (!currentUser) {
+            setCompanies([]);
+            return;
+        }
+
         const q = query(collection(db, "companies"), orderBy("name"));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const data = snapshot.docs.map(doc => ({
@@ -39,15 +47,23 @@ export function DatabaseProvider({ children }) {
             setLoading(false);
         }, (error) => {
             console.error("Error fetching companies:", error);
-            toast.error("Failed to fetch companies");
+            // Don't show toast error if it's a permission error during logout/cleanup
+            if (error.code !== 'permission-denied') {
+                toast.error("Failed to fetch companies");
+            }
             setLoading(false);
         });
 
         return () => unsubscribe();
-    }, []);
+    }, [currentUser]);
 
     // Fetch Products
     useEffect(() => {
+        if (!currentUser) {
+            setProducts([]);
+            return;
+        }
+
         const q = query(collection(db, "products"), orderBy("name"));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const data = snapshot.docs.map(doc => ({
@@ -57,14 +73,21 @@ export function DatabaseProvider({ children }) {
             setProducts(data);
         }, (error) => {
             console.error("Error fetching products:", error);
-            toast.error("Failed to fetch products");
+            if (error.code !== 'permission-denied') {
+                toast.error("Failed to fetch products");
+            }
         });
 
         return () => unsubscribe();
-    }, []);
+    }, [currentUser]);
 
     // Fetch Brands
     useEffect(() => {
+        if (!currentUser) {
+            setBrands([]);
+            return;
+        }
+
         const q = query(collection(db, "brands"), orderBy("name"));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const data = snapshot.docs.map(doc => ({
@@ -74,15 +97,22 @@ export function DatabaseProvider({ children }) {
             setBrands(data);
         }, (error) => {
             console.error("Error fetching brands:", error);
-            toast.error("Failed to fetch brands");
+            if (error.code !== 'permission-denied') {
+                toast.error("Failed to fetch brands");
+            }
         });
 
         return () => unsubscribe();
-    }, []);
+    }, [currentUser]);
 
     // Fetch Suppliers
     const [suppliers, setSuppliers] = useState([]);
     useEffect(() => {
+        if (!currentUser) {
+            setSuppliers([]);
+            return;
+        }
+
         const q = query(collection(db, "suppliers"), orderBy("companyName"));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const data = snapshot.docs.map(doc => ({
@@ -92,15 +122,22 @@ export function DatabaseProvider({ children }) {
             setSuppliers(data);
         }, (error) => {
             console.error("Error fetching suppliers:", error);
-            toast.error("Failed to fetch suppliers");
+            if (error.code !== 'permission-denied') {
+                toast.error("Failed to fetch suppliers");
+            }
         });
 
         return () => unsubscribe();
-    }, []);
+    }, [currentUser]);
 
     // Fetch Employees
     const [employees, setEmployees] = useState([]);
     useEffect(() => {
+        if (!currentUser) {
+            setEmployees([]);
+            return;
+        }
+
         const q = query(collection(db, "employees"), orderBy("employeeName"));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const data = snapshot.docs.map(doc => ({
@@ -110,11 +147,13 @@ export function DatabaseProvider({ children }) {
             setEmployees(data);
         }, (error) => {
             console.error("Error fetching employees:", error);
-            toast.error("Failed to fetch employees");
+            if (error.code !== 'permission-denied') {
+                toast.error("Failed to fetch employees");
+            }
         });
 
         return () => unsubscribe();
-    }, []);
+    }, [currentUser]);
 
     // Company Operations
     async function addCompany(companyData) {

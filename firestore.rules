@@ -1,0 +1,37 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin' ||
+         // Fallback for email-based query if UID is not doc ID
+         // This is a bit complex in rules, so for now we'll allow authenticated users
+         // to read if we can't confirm role easily, or just allow all authenticated.
+         request.auth.token.email == 'vishal@digitaledgetech.in');
+    }
+
+    // Allow any authenticated user to read/write for now to resolve the immediate issue
+    // and provide a baseline for security.
+    match /{document=**} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Once users are migrated to UID-based document IDs, we can use these more secure rules:
+    /*
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
+    match /assets/{assetId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Staff';
+    }
+    */
+  }
+}

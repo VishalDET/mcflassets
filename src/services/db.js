@@ -9,7 +9,8 @@ import {
     query,
     where,
     orderBy,
-    serverTimestamp
+    serverTimestamp,
+    setDoc
 } from "firebase/firestore";
 import { db } from "./firebase";
 
@@ -187,6 +188,20 @@ export const addUser = async (userData) => {
         return docRef.id;
     } catch (error) {
         console.error("Error adding user: ", error);
+        throw error;
+    }
+};
+
+export const setUser = async (id, userData) => {
+    try {
+        const userRef = doc(db, USERS_COLLECTION, id);
+        await setDoc(userRef, {
+            ...userData,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        });
+    } catch (error) {
+        console.error("Error setting user: ", error);
         throw error;
     }
 };

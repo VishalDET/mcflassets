@@ -1,7 +1,29 @@
 
 import React, { useState } from 'react';
+import pkg from '../../package.json';
 import { useAuth } from '../context/AuthContext';
-import { User, Info, HelpCircle, Shield, FileText, LogOut } from 'lucide-react';
+import { User, Info, HelpCircle, Shield, FileText, LogOut, ChevronDown, ChevronUp } from 'lucide-react';
+
+const AccordionItem = ({ title, content, defaultOpen = false }) => {
+    const [isOpen, setIsOpen] = useState(defaultOpen);
+
+    return (
+        <div className="border border-gray-100 rounded-lg overflow-hidden transition-all duration-200 hover:border-gray-200">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className={`w-full flex items-center justify-between p-4 text-left transition-colors ${isOpen ? 'bg-gray-50' : 'bg-white hover:bg-gray-50/50'}`}
+            >
+                <span className="font-medium text-gray-800">{title}</span>
+                {isOpen ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
+            </button>
+            <div className={`transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
+                <div className="p-4 pt-0 text-gray-600 text-sm leading-relaxed border-t border-gray-50 bg-gray-50/30">
+                    {content}
+                </div>
+            </div>
+        </div>
+    );
+};
 
 export default function UserProfile() {
     const { currentUser, logout } = useAuth();
@@ -86,11 +108,11 @@ export default function UserProfile() {
                                 </div>
                                 <div className="flex items-center justify-between py-3 border-b border-gray-100">
                                     <span className="text-gray-600">Version</span>
-                                    <span className="font-medium text-gray-900">v1.2.0</span>
+                                    <span className="font-medium text-gray-900">v{pkg.version}</span>
                                 </div>
                                 <div className="flex items-center justify-between py-3 border-b border-gray-100">
                                     <span className="text-gray-600">Build Number</span>
-                                    <span className="font-medium text-gray-900">20241216.01</span>
+                                    <span className="font-medium text-gray-900">{pkg.version}.{new Date().getFullYear()}</span>
                                 </div>
                                 <div className="flex items-center justify-between py-3 border-b border-gray-100">
                                     <span className="text-gray-600">Environment</span>
@@ -98,7 +120,7 @@ export default function UserProfile() {
                                 </div>
                                 <div className="flex items-center justify-between py-3 border-b border-gray-100">
                                     <span className="text-gray-600">Copyright</span>
-                                    <span className="font-medium text-gray-900">© 2025 Digital Edge Technologies</span>
+                                    <span className="font-medium text-gray-900">© {new Date().getFullYear()} Digital Edge Technologies</span>
                                 </div>
                                 <div className="flex items-center justify-between py-3 border-b border-gray-100">
                                     <span className="text-gray-600">Contact Developer</span>
@@ -118,7 +140,7 @@ export default function UserProfile() {
                                 <div className="bg-gray-50 border-l-4 border-gray-500 p-4 rounded mb-6">
                                     <h3 className="text-gray-800 font-semibold mb-2">Contact Support</h3>
                                     <p className="text-gray-700">
-                                        For critical issues, please reach out to our IT support team at <a href="mailto:support@niyantra.com" className="underline">support@niyantra.com</a>
+                                        For critical issues, please reach out to our IT support team at <a href="mailto:com@digitaledgetech.in" className="underline">com@digitaledgetech.in</a>
                                     </p>
                                 </div>
 
@@ -135,25 +157,67 @@ export default function UserProfile() {
                     {activeTab === 'privacy' && (
                         <div className="space-y-6">
                             <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">Privacy Policy</h2>
-                            <div className="prose max-w-none text-gray-600">
-                                <p>
-                                    <strong>Last Updated: December 2024</strong>
-                                </p>
-                                <p>
-                                    At Niyantra Asset Manager, we take your privacy seriously. This policy describes how we handle detailed information collected by our application.
-                                </p>
-                                <h3 className="text-lg font-medium text-gray-800 mt-4 mb-2">Data Collection</h3>
-                                <p>
-                                    We collect information necessary for IT asset management, including user profiles (name, email), asset usage history, and system logs.
-                                </p>
-                                <h3 className="text-lg font-medium text-gray-800 mt-4 mb-2">Data Usage</h3>
-                                <p>
-                                    Your data is used solely for the purpose of managing company assets, tracking inventory, and ensuring security compliance. we do not share this data with third parties.
-                                </p>
-                                <h3 className="text-lg font-medium text-gray-800 mt-4 mb-2">Data Security</h3>
-                                <p>
-                                    We implement industry-standard security measures to protect your data from unauthorized access.
-                                </p>
+                            <div className="space-y-4">
+                                {[
+                                    {
+                                        title: "1. Introduction",
+                                        content: "Welcome to Niyantra Asset Management (\"we,\" \"our,\" or \"us\"). We are committed to protecting your privacy and ensuring the security of your data. This Privacy Policy explains how we collect, use, disclosure, and safeguard your information when you use our SaaS platform and services."
+                                    },
+                                    {
+                                        title: "2. Data We Collect",
+                                        content: (
+                                            <div className="space-y-2">
+                                                <p>We collect information to provide and improve our services to you:</p>
+                                                <ul className="list-disc pl-5 space-y-1">
+                                                    <li><strong>Account Information:</strong> Name, email address, company name, phone number, and billing details provided during registration.</li>
+                                                    <li><strong>Asset Data:</strong> Information about the assets you manage through our platform, including hardware specifications, locations, and user assignments.</li>
+                                                    <li><strong>Usage Data:</strong> Information on how you interact with our platform, including log files, device information, and analytics.</li>
+                                                </ul>
+                                            </div>
+                                        )
+                                    },
+                                    {
+                                        title: "3. How We Use Your Data",
+                                        content: (
+                                            <ul className="list-disc pl-5 space-y-1">
+                                                <li>To provide, maintain, and improve our SaaS platform.</li>
+                                                <li>To process transactions and manage your subscription.</li>
+                                                <li>To generate asset reports and analytics as requested by you.</li>
+                                                <li>To communicate with you regarding updates, security alerts, and support.</li>
+                                                <li>To comply with legal obligations and enforce our terms.</li>
+                                            </ul>
+                                        )
+                                    },
+                                    {
+                                        title: "4. Data Security",
+                                        content: "We implement industry-standard security measures to protect your data, including encryption in transit and at rest, strict access controls, and regular security assessments. However, no method of transmission over the internet is 100% secure, and we cannot guarantee absolute security."
+                                    },
+                                    {
+                                        title: "5. Data Retention & Rights",
+                                        content: (
+                                            <div className="space-y-2">
+                                                <p>We retain your data for as long as your account is active or as needed to provide services. You have the right to:</p>
+                                                <ul className="list-disc pl-5 space-y-1">
+                                                    <li>Access information we hold about you.</li>
+                                                    <li>Request correction of inaccurate data.</li>
+                                                    <li>Request deletion of your data (subject to legal retention requirements).</li>
+                                                    <li>Export your asset data from the platform.</li>
+                                                </ul>
+                                            </div>
+                                        )
+                                    },
+                                    {
+                                        title: "6. Third-Party Services",
+                                        content: "We may share data with trusted third-party service providers (e.g., cloud hosting, payment processors) strictly for the purpose of operational service delivery. We do not sell your data to advertisers."
+                                    }
+                                ].map((section, index) => (
+                                    <AccordionItem
+                                        key={index}
+                                        title={section.title}
+                                        content={section.content}
+                                        defaultOpen={index === 0}
+                                    />
+                                ))}
                             </div>
                         </div>
                     )}
@@ -187,6 +251,15 @@ export default function UserProfile() {
                         </div>
                     )} */}
                 </div>
+            </div>
+
+            <div className='bg-white rounded-lg shadow-lg p-6 mt-2'>
+                <h2 className="text-md font-semibold text-gray-800 border-b pb-2">More Information</h2>
+                <p className="text-gray-600 mt-2 text-sm">
+                    for more information about the software visit our website -
+
+                    <a href="http://niyantra.digitaledgetech.in" target="_blank" rel="noopener noreferrer">https://niyantra.digitaledgetech.in</a>
+                </p>
             </div>
         </div>
     );

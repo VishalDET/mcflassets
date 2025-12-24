@@ -163,6 +163,13 @@ export default function EditAsset() {
                 setUploading(false);
             }
 
+            // Automatically unassign if status is Scrapped
+            if (updatedData.status === "Scrapped") {
+                updatedData.assignedTo = "Stock";
+                updatedData.employeeId = "N/A";
+                updatedData.assignedDate = null;
+            }
+
             await updateAsset(id, updatedData);
             toast.success("Asset updated successfully");
             navigate("/assets");

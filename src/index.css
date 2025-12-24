@@ -28,3 +28,54 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* Print Styles */
+@media print {
+  body {
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Remove layout constraints from MainLayout components */
+  div.flex.min-h-screen {
+    display: block !important;
+  }
+
+  main {
+    margin-left: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Hide elements with no-print class */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Ensure the printable form is visible and takes full width */
+  .printable-form {
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 10mm !important;
+    /* Smaller margin to maximize form space */
+    border: none !important;
+    box-shadow: none !important;
+    background: white !important;
+    position: relative !important;
+    z-index: 9999 !important;
+  }
+
+  /* Specific elements to hide during print */
+  nav,
+  sidebar,
+  header,
+  button,
+  .Toastify {
+    display: none !important;
+  }
+}

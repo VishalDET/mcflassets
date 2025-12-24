@@ -247,7 +247,7 @@ export default function AssetList() {
         <div className="p-0">
             {/* Warranty Alert Banner */}
             {warrantyNearAssets.length > 0 && (
-                <div className="mb-6 bg-orange-50 border-l-4 border-orange-500 p-4 rounded-r-lg flex items-start justify-between shadow-sm animate-fade-in">
+                <div className="mb-6 bg-orange-50 border border-orange-200 p-4 rounded-lg flex items-start justify-between shadow-sm animate-fade-in">
                     <div className="flex gap-3">
                         <AlertTriangle className="text-orange-500 mt-0.5" size={24} />
                         <div>
@@ -420,13 +420,14 @@ export default function AssetList() {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Company</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Location</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Status</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">AssignID</th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-100 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {paginatedAssets.length === 0 ? (
                                 <tr>
-                                    <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
+                                    <td colSpan="8" className="px-6 py-4 text-center text-gray-500">
                                         No assets found matching your search.
                                     </td>
                                 </tr>
@@ -475,6 +476,10 @@ export default function AssetList() {
                                                 </span>
                                             )}
                                         </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">
+                                            {asset.status === 'Assigned' ? asset.employeeId : '-'}
+                                        </td>
+
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <div className="flex justify-end gap-3">
                                                 <Link to={`/assets/${asset.id}`} className="text-gray-400 hover:text-gray-800">

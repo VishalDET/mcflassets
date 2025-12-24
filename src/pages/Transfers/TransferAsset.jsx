@@ -256,10 +256,7 @@ export default function TransferAsset() {
             });
 
             // 2. Update Asset Status and Location
-            await updateAsset(formData.assetId, {
-                companyId: formData.toCompanyId,
-                companyName: formData.toCompany,
-                companyCode: formData.toCompanyCode,
+            const assetUpdateData = {
                 branch: formData.toBranch,
                 branchCode: formData.toBranchCode,
                 location: formData.toLocation,
@@ -268,7 +265,17 @@ export default function TransferAsset() {
                 employeeId: transferType === "employee" ? formData.employeeId : "N/A",
                 assignedDate: formData.assignedDate,
                 status: transferType === "employee" ? "Assigned" : "Active"
-            });
+            };
+
+            // Only update company owner fields if it's NOT an employee transfer 
+            // (i.e., it's a company transfer to stock)
+            if (transferType === "company") {
+                assetUpdateData.companyId = formData.toCompanyId;
+                assetUpdateData.companyName = formData.toCompany;
+                assetUpdateData.companyCode = formData.toCompanyCode;
+            }
+
+            await updateAsset(formData.assetId, assetUpdateData);
 
             toast.success("Asset transferred successfully");
             navigate("/assets");

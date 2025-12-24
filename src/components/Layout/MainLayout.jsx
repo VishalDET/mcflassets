@@ -7,10 +7,12 @@ export default function MainLayout() {
 
     return (
         <div className="flex min-h-screen bg-gray-50">
-            <Sidebar
-                isCollapsed={isSidebarCollapsed}
-                toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            />
+            <div className="no-print">
+                <Sidebar
+                    isCollapsed={isSidebarCollapsed}
+                    toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                />
+            </div>
             <main
                 className={`flex-1 p-8 transition-all duration-300 ease-in-out ${isSidebarCollapsed ? "ml-20" : "ml-64"
                     }`}

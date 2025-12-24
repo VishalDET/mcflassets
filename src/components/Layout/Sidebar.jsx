@@ -68,10 +68,10 @@ export default function Sidebar({ isCollapsed, toggleSidebar }) {
             ${isCollapsed ? "w-20" : "w-64"}`}
         >
             {/* Header / Logo */}
-            <div className={`h-20 flex items-center justify-center bg-gray-100 border-b border-r-2 border-gray-800 relative transition-all duration-300 w-full
+            <div className={`h-20 flex items-center justify-center bg-gray-100 border-b border-r-2 border-gray-800 relative transition-all duration-300 w-full overflow-hidden
                 ${isCollapsed ? 'px-2' : 'px-6'}`}>
                 {isCollapsed ? (
-                    <div className="flex items-center justify-center w-full h-full">
+                    <div className="flex items-center justify-center w-full h-full overflow-hidden">
                         <img src="/Niyantra_600x600.png" alt="Logo" className="w-full h-auto object-cover" />
                     </div>
                 ) : (
