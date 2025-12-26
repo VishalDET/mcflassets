@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Lock, Mail, ShieldCheck } from "lucide-react";
@@ -11,8 +11,15 @@ export default function Login() {
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
-    const { login } = useAuth();
+    const { login, currentUser } = useAuth();
     const navigate = useNavigate();
+
+    // Redirect if already logged in or when login completes
+    useEffect(() => {
+        if (currentUser) {
+            navigate("/");
+        }
+    }, [currentUser, navigate]);
 
     const containerRef = useRef(null);
     const cardRef = useRef(null);
@@ -45,7 +52,7 @@ export default function Login() {
             setError("");
             setLoading(true);
             await login(email, password);
-            navigate("/");
+            // navigate("/") - Handled by useEffect acting on currentUser change
         } catch (err) {
             setError("Failed to log in: " + err.message);
             // Shake animation on error

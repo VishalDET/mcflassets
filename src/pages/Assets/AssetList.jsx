@@ -13,7 +13,7 @@ import { AlertTriangle, TrendingUp, Calendar, CheckCircle, XCircle, Clock, Check
 import { useAuth } from "../../context/AuthContext";
 
 export default function AssetList() {
-    const { companies, products } = useDatabase();
+    const { companies, products, employees } = useDatabase();
     const { currentUser } = useAuth();
     const navigate = useNavigate();
     const [assets, setAssets] = useState([]);
@@ -420,7 +420,7 @@ export default function AssetList() {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Company</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Location</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">AssignID</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Employee Name</th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-100 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
@@ -449,7 +449,7 @@ export default function AssetList() {
                                             <div className="font-medium">{asset.product}</div>
                                             <div className="text-xs text-gray-500">{asset.productSerialNumber}</div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{asset.companyName}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{asset.companyCode}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{asset.location}</td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             {asset.status === 'Active' ? (
@@ -477,7 +477,9 @@ export default function AssetList() {
                                             )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">
-                                            {asset.status === 'Assigned' ? asset.employeeId : '-'}
+                                            {asset.status === 'Assigned'
+                                                ? (asset.assignedTo || employees.find(e => e.employeeId === asset.employeeId)?.employeeName || '-')
+                                                : '-'}
                                         </td>
 
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

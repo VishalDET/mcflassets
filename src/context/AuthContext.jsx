@@ -18,10 +18,12 @@ export function AuthProvider({ children }) {
     }
 
     function login(email, password) {
+        localStorage.removeItem("lastActivity");
         return signInWithEmailAndPassword(auth, email, password);
     }
 
     function logout() {
+        localStorage.removeItem("lastActivity");
         return signOut(auth);
     }
 
