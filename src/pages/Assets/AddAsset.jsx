@@ -47,22 +47,23 @@ export default function AddAsset() {
         isDeleted: false
     });
 
-    // Auto-generate URN on mount - DISABLED for manual entry of old data
-    // useEffect(() => {
-    //     const generateURN = async () => {
-    //         try {
-    //             const assets = await getAssets();
-    //             const urns = assets.map(a => parseInt(a.urn)).filter(n => !isNaN(n));
-    //             const maxURN = urns.length > 0 ? Math.max(...urns) : 2355;
-    //             const nextURN = (maxURN + 1).toString();
-    //             setFormData(prev => ({ ...prev, urn: nextURN }));
-    //         } catch (error) {
-    //             console.error("Error generating URN:", error);
-    //             toast.error("Failed to generate URN");
-    //         }
-    //     };
-    //     generateURN();
-    // }, []);
+    // Auto-generate URN on mount - Latest number is 2367
+    useEffect(() => {
+        const generateURN = async () => {
+            try {
+                const assets = await getAssets();
+                const urns = assets.map(a => parseInt(a.urn)).filter(n => !isNaN(n));
+                // Ensure URN starts at minimum 2367, even if existing URNs are lower
+                const maxURN = urns.length > 0 ? Math.max(...urns, 2366) : 2366;
+                const nextURN = (maxURN + 1).toString();
+                setFormData(prev => ({ ...prev, urn: nextURN }));
+            } catch (error) {
+                console.error("Error generating URN:", error);
+                toast.error("Failed to generate URN");
+            }
+        };
+        generateURN();
+    }, []);
 
     // Auto-calculate Year of Acquisition and Warranty Expiry
     useEffect(() => {
@@ -83,13 +84,13 @@ export default function AddAsset() {
         }
     }, [formData.dateOfAcquisition]);
 
-    // Auto-generate Tagging Number - DISABLED for manual entry of old data
-    // useEffect(() => {
-    //     if (formData.companyCode && formData.productCode && formData.urn) {
-    //         const taggingNo = `${formData.companyCode}${formData.productCode}${formData.urn}`;
-    //         setFormData(prev => ({ ...prev, taggingNo }));
-    //     }
-    // }, [formData.companyCode, formData.productCode, formData.urn]);
+    // Auto-generate Tagging Number
+    useEffect(() => {
+        if (formData.companyCode && formData.productCode && formData.urn) {
+            const taggingNo = `${formData.companyCode}${formData.productCode}${formData.urn}`;
+            setFormData(prev => ({ ...prev, taggingNo }));
+        }
+    }, [formData.companyCode, formData.productCode, formData.urn]);
 
     // Handle Company Selection
     const handleCompanyChange = async (e) => {
@@ -267,9 +268,9 @@ export default function AddAsset() {
                         <input
                             type="text"
                             required
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-gray-500 focus:border-transparent focus:outline-none"
+                            readOnly
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-500 cursor-not-allowed"
                             value={formData.urn}
-                            onChange={e => setFormData({ ...formData, urn: e.target.value })}
                         />
                     </div>
                     <div>
@@ -438,16 +439,16 @@ export default function AddAsset() {
                     </div>
                 </div>
 
-                {/* Tagging No - Manual Entry */}
+                {/* Tagging No - Auto-generated */}
                 <div>
                     <label className="block text-sm font-bold text-gray-700 mb-1">Tagging No.</label>
                     <input
                         type="text"
                         required
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-gray-500 focus:outline-none font-mono text-lg font-bold"
+                        readOnly
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-500 cursor-not-allowed font-mono text-lg font-bold"
                         value={formData.taggingNo}
-                        onChange={e => setFormData({ ...formData, taggingNo: e.target.value })}
-                        placeholder="Enter Asset Tagging Number"
+                        placeholder="Auto-generated from Company + Product + URN"
                     />
                 </div>
 
